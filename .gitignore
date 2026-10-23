@@ -1,0 +1,34 @@
+# Secrets — never commit real env files (the example is tracked)
+.env
+.env.*
+!.env.example
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Node
+node_modules/
+*.log
+.pnpm-debug.log*
+.vercel
+
+# Foundry (contracts/)
+contracts/out/
+contracts/cache/
+contracts/broadcast/**/dry-run/
+contracts/broadcast/*/31337/
+contracts/lcov.info
+contracts/coverage/
+
+# Next.js (web/)
+web/.next/
+web/out/
+web/next-env.d.ts
+*.tsbuildinfo
+
+# Local scratch
+tmp/

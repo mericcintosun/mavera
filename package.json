@@ -1,0 +1,23 @@
+{
+  "name": "mavera",
+  "version": "0.0.0",
+  "private": true,
+  "description": "A paid API sells its future revenue as on-chain shares; every x402 call's payment is distributed to share holders within one Monad block.",
+  "license": "MIT",
+  "packageManager": "pnpm@12.15.0",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "env:link": "ln -sf ../.env web/.env.local && ln -sf ../.env contracts/.env",
+    "dev": "pnpm --filter @mavera/web dev",
+    "build": "pnpm --filter @mavera/web build",
+    "lint": "pnpm -r --if-present lint",
+    "format": "pnpm -r --if-present format",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "test": "pnpm -r --if-present test",
+    "contracts:build": "forge build --root contracts",
+    "contracts:test": "forge test --root contracts",
+    "contracts:fmt": "forge fmt --root contracts"
+  }
+}

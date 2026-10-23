@@ -1,0 +1,19 @@
+packages:
+  - web
+  - scripts
+
+# pnpm >= 10 does not run dependency build scripts unless they are approved here
+# (`pnpm approve-builds <pkg>` edits this list). esbuild — pulled in by vite/vitest and tsx —
+# needs its postinstall to place the native binary. sharp and unrs-resolver are optional
+# native builds we deliberately skip (carried over from create-next-app).
+allowBuilds:
+  esbuild: true
+  sharp: false
+  unrs-resolver: false
+
+# pnpm 12 quarantines packages published less than 24 h ago (supply-chain guard).
+# next@16.4.3 shipped on 2026-10-23 13:40 UTC, less than 24 h before the hackathon's Vercel
+# build, so the default would block it. 180 minutes keeps the guard against minutes-old
+# malicious releases while letting event-day installs proceed. The committed lockfile pins
+# exact versions regardless. See docs/11-TOOLCHAIN.md.
+minimumReleaseAge: 180

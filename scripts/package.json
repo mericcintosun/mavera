@@ -1,0 +1,24 @@
+{
+  "name": "@mavera/scripts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Demo customer and load-test scripts for Mavera (x402 client). Stubs until event hours.",
+  "scripts": {
+    "customer": "tsx --env-file=../.env customer.ts",
+    "load-test": "tsx --env-file=../.env load-test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@x402/core": "2.28.0",
+    "@x402/evm": "2.28.0",
+    "@x402/fetch": "2.28.0",
+    "viem": "2.57.10",
+    "zod": "3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3"
+  }
+}

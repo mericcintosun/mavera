@@ -1,0 +1,6 @@
+{
+  "filter_paths": "lib/",
+  "exclude_dependencies": true,
+  "detectors_to_exclude": "solc-version,naming-convention",
+  "fail_on": "none"
+}

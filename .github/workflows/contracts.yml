@@ -1,0 +1,86 @@
+name: contracts
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "contracts/**"
+      - ".gitmodules"
+      - ".github/workflows/contracts.yml"
+  pull_request:
+    paths:
+      - "contracts/**"
+      - ".gitmodules"
+      - ".github/workflows/contracts.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: contracts-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FOUNDRY_PROFILE: ci
+
+jobs:
+  forge:
+    name: fmt, build, test (Monad execution)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: contracts
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.8.6
+
+      - name: Versions
+        run: forge --version && forge config --json | jq '{solc, evm_version, network, chain_id}'
+
+      - name: Format check
+        run: forge fmt --check
+
+      - name: Build
+        run: forge build --sizes
+
+      - name: Test (unit + fuzz + invariant)
+        run: forge test -vvv
+
+  slither:
+    name: slither (non-blocking)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - name: Run Slither
+        id: slither
+        uses: crytic/slither-action@v0.4.2
+        continue-on-error: true
+        with:
+          target: contracts
+          fail-on: none
+          slither-config: contracts/slither.config.json
+          slither-args: --checklist --markdown-root ${{ github.server_url }}/${{ github.repository }}/blob/${{ github.sha }}/contracts/
+
+      - name: Publish checklist to the job summary
+        if: always()
+        env:
+          SLITHER_STDOUT: ${{ steps.slither.outputs.stdout }}
+        run: |
+          {
+            echo "## Slither"
+            echo
+            printf '%s\n' "$SLITHER_STDOUT"
+          } >> "$GITHUB_STEP_SUMMARY"
