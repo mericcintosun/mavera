@@ -77,18 +77,18 @@ Blockchain here is not the payment rail. It is the cap table and the escrow.
 | Item | Value | Where to check |
 | --- | --- | --- |
 | Network | Monad testnet, chain id 10143 (`0x279f`), RPC `https://testnet-rpc.monad.xyz` | https://docs.monad.xyz/developer-essentials/testnet (accessed 2026-10-24) |
-| `Mavera` contract | `<MAVERA_ADDRESS>` — TBD on event day | `https://testnet.monadscan.com/address/<MAVERA_ADDRESS>` |
-| Deploy transaction | `<DEPLOY_TX_HASH>` — TBD on event day | `https://testnet.monadscan.com/tx/<DEPLOY_TX_HASH>` |
-| Example x402 settlement (facilitator to USDC to Mavera) | `<SETTLEMENT_TX_HASH>` — TBD on event day | `https://testnet.monadscan.com/tx/<SETTLEMENT_TX_HASH>` |
-| Example `sync()` and `claim()` transactions | `<SYNC_TX_HASH>`, `<CLAIM_TX_HASH>` — TBD on event day | `https://testnet.monadscan.com/tx/<hash>` |
-| Source verification, Sourcify / MonadVision (no key) | TBD on event day | `https://sourcify-api-monad.blockvision.org/v2/contract/10143/<MAVERA_ADDRESS>` and https://testnet.monadvision.com |
-| Source verification, Monadscan (Etherscan V2 API, free key) | TBD on event day | `https://testnet.monadscan.com/address/<MAVERA_ADDRESS>` |
+| `Mavera` contract | `0x2C2FcAE97A0925c5c660E3Ea467F931AdE760F4B` (deployed 24 Oct 2026 12:40 TRT; name `Mavera Shares: MON/USD Price API`, symbol `mPRICE`) | https://testnet.monadscan.com/address/0x2C2FcAE97A0925c5c660E3Ea467F931AdE760F4B |
+| Deploy transaction | `0x98f178113ea31a120c990fba9f351fda887340c94ed25260f4bbb045a92f4568` | https://testnet.monadscan.com/tx/0x98f178113ea31a120c990fba9f351fda887340c94ed25260f4bbb045a92f4568 |
+| First x402 settlement (facilitator pays gas; 0.01 USDC from the customer wallet to the contract) | `0xdc3384666636bf00ee33e1a683faea03c55ad1b5c07759ae49272d438862aa1e` | https://testnet.monadscan.com/tx/0xdc3384666636bf00ee33e1a683faea03c55ad1b5c07759ae49272d438862aa1e |
+| First `sync()` (triggered by the server's `onAfterSettle` hook), `buy()` of 20 shares, `claim()` of 0.309999 USDC | `0x56a47ffbbecd6ab952a862c6ce74b668c3c4d05d07bb859938ae82452e29797d`, `0xa9b024861da98f01b88f41220fb78bf20c5fbb0eb62ed595aa80767b9baeea7f`, `0x0920d8757f2413e2274767ad08c5d86645d72744645de090543d04b0402c16ef` | https://testnet.monadscan.com/tx/0x56a47ffbbecd6ab952a862c6ce74b668c3c4d05d07bb859938ae82452e29797d, https://testnet.monadscan.com/tx/0xa9b024861da98f01b88f41220fb78bf20c5fbb0eb62ed595aa80767b9baeea7f, https://testnet.monadscan.com/tx/0x0920d8757f2413e2274767ad08c5d86645d72744645de090543d04b0402c16ef |
+| Source verification, Sourcify / MonadVision (no key) | `exact_match` (creation and runtime), verified 2026-10-24 09:40:09 UTC | https://sourcify-api-monad.blockvision.org/v2/contract/10143/0x2C2FcAE97A0925c5c660E3Ea467F931AdE760F4B and https://testnet.monadvision.com/address/0x2C2FcAE97A0925c5c660E3Ea467F931AdE760F4B |
+| Source verification, Monadscan (Etherscan V2 API, free key) | pending (needs `ETHERSCAN_API_KEY`; `./scripts/verify.sh`) | https://testnet.monadscan.com/address/0x2C2FcAE97A0925c5c660E3Ea467F931AdE760F4B#code |
 | Live demo (Vercel, Root Directory `web`) | https://mavera-ruby.vercel.app (pnpm 12.15.0 and Next.js 16.4.3 detected on the first build, 24 Oct 2026) | `GET /api/state` returns live chain state; `GET /api/price` answers 402 with `PAYMENT-REQUIRED` |
 | x402 facilitator | https://x402-facilitator.molandak.org — x402 v2, schemes `exact`, `upto`, `batch-settlement` on `eip155:10143`; signer `0x7f6a2850669202519f0FE8aa912451238820Db86` pays settlement gas | `GET /supported` (checked live 2026-10-24) |
 | USDC (Circle, Monad testnet): the x402 asset and the dividend asset | `0x534b2f3A21130d7a60830c2Df862319e593943A3` (FiatTokenV2_2, 6 decimals, EIP-3009 and EIP-2612, EIP-712 domain name `USDC` version `2`) | https://developers.circle.com/stablecoins/usdc-contract-addresses (accessed 2026-10-24); faucet https://faucet.circle.com (20 USDC per address every 2 h) |
 | Price per call | 10,000 USDC atomic units = USD 0.01 (`X402_PRICE_ATOMIC`) | [.env.example](.env.example) |
-| Demo parameters (spec defaults) | `sharePrice` 10,000 units (0.01 USDC per 1e18 shares), `creatorShares` 60e18, `maxSupply` 100e18 (40e18 shares for sale = 0.4 USDC) — TBD, confirm at 11:00 | [docs/02-CONTRACT-SPEC.md](docs/02-CONTRACT-SPEC.md) |
-| Token name and symbol | TBD on event day (proposal: "Mavera Shares: <API name>" / `mAPI`) | [docs/02-CONTRACT-SPEC.md](docs/02-CONTRACT-SPEC.md) |
+| Demo parameters (deployed) | `sharePrice` 10,000 units (0.01 USDC per 1e18 shares), `creatorShares` 60e18, `maxSupply` 100e18 (40e18 for sale = 0.4 USDC; 20e18 sold so far) | [docs/02-CONTRACT-SPEC.md](docs/02-CONTRACT-SPEC.md) |
+| Token name and symbol | `Mavera Shares: MON/USD Price API` / `mPRICE` (18 decimals) | [docs/02-CONTRACT-SPEC.md](docs/02-CONTRACT-SPEC.md) |
 
 ## Quickstart
 
@@ -157,6 +157,8 @@ mavera/
 ```
 
 ## Tests and quality
+
+Measured on 24 Oct 2026 against the live deployment: 31 of 31 x402-paid calls settled (1 single call + a 30-call sequential load test), latency p50 929 ms / p95 1,611 ms per paid call end to end (402, signature, facilitator verify + settle on Monad, response), 0.31 USDC distributed on-chain by `sync()` and 0.309999 USDC claimed by the creator in one `claim()`.
 
 [![contracts](https://github.com/mericcintosun/mavera/actions/workflows/contracts.yml/badge.svg)](https://github.com/mericcintosun/mavera/actions/workflows/contracts.yml)
 [![web](https://github.com/mericcintosun/mavera/actions/workflows/web.yml/badge.svg)](https://github.com/mericcintosun/mavera/actions/workflows/web.yml)
