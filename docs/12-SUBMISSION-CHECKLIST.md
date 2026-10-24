@@ -1,6 +1,6 @@
 # Mavera — Submission checklist
 
-This is the last document the team opens on 24 October 2026: what the Blitz platform (https://blitz.devnads.com, event slug `monad-blitz-ankara-v4`) needs, in which order, by when, and what the jury's own rubric will look for. The submission window closes at 16:30 Europe/Istanbul; because every submission needs admin approval before it appears for voting, our internal deadline is 16:00. Everything the form asks for has a prepared value below (title, category, a 114-word description, a 232-character tweet, image and video limits); everything that only exists after deployment is a bracketed placeholder such as `<MAVERA_ADDRESS>`. The checklist is deliberately conservative: a finance product that fails the platform's `deployed` or `honest_pitch` gate "was not ranked", whatever its score. Commands for deploying, verifying and running the app live in [docs/07-RUNBOOK.md](07-RUNBOOK.md); this file only checks their results. Platform facts were read from the platform's JSON API and form JavaScript on 2026-10-24 and may change in the morning (see "Open questions").
+This is the last document the team opens on 24 October 2026: what the Blitz platform (https://blitz.devnads.com, event slug `monad-blitz-ankara-v4`) needs, in which order, by when, and what the jury's own rubric will look for. The submission window closes at 16:30 Europe/Istanbul; because every submission needs admin approval before it appears for voting, our internal deadline is 16:00. Everything the form asks for has a prepared value below (title, category, a 114-word description, a 232-character tweet, image and video limits); everything that only exists after deployment is a bracketed placeholder such as `0x2C2FcAE97A0925c5c660E3Ea467F931AdE760F4B`. The checklist is deliberately conservative: a finance product that fails the platform's `deployed` or `honest_pitch` gate "was not ranked", whatever its score. Commands for deploying, verifying and running the app live in [docs/07-RUNBOOK.md](07-RUNBOOK.md); this file only checks their results. Platform facts were read from the platform's JSON API and form JavaScript on 2026-10-24 and may change in the morning (see "Open questions").
 
 ## 1. Platform facts
 
@@ -42,7 +42,7 @@ The rubric below is live on the platform (`GET https://blitz.devnads.com/api/eve
 | Key | Weight | Platform description (verbatim) | Our evidence |
 | --- | --- | --- | --- |
 | `built_at_event` | gate | "The repo shows the work happened during the event. Prior work must be disclosed." | [README.md](../README.md) section "Built at the event — prior work disclosure": pre-event scaffold = configuration, CI, docs, stubs, commit range `fec7bfa..<LAST_PRE_EVENT_COMMIT>`; first product commit after 10:45; public commit timestamps |
-| `deployed` | gate | "A contract address is provided and has code on Monad testnet." | `<MAVERA_ADDRESS>` in the description and README; `cast code` non-empty (section 4.1); verified on Monadscan and MonadVision with links |
+| `deployed` | gate | "A contract address is provided and has code on Monad testnet." | `0x2C2FcAE97A0925c5c660E3Ea467F931AdE760F4B` in the description and README; `cast code` non-empty (section 4.1); source-verified on Sourcify/MonadVision (exact match) with links |
 | `honest_pitch` | gate | "The headline claim in the description and demo is actually implemented." | Headline = "every x402 call pays the holders within one Monad block"; the demo shows one paid call, its settlement tx, the `Synced` tx and the claimable increase; latency measured in section 4.4 — the wording changes if the measurement says so |
 | `execution` | 30 | "How much of it actually works." | Live end to end: Buy → ~50 real paid calls (load test) → the fountain climbs → Claim → USDC in the wallet; Foundry unit + invariant tests and Vitest in CI ([docs/05-TEST-PLAN.md](05-TEST-PLAN.md)); reference bar = Kaskad (İstanbul v2 winner): 43 Foundry tests in CI, 3 invariants, 15 Vitest blocks, CI, verified contracts |
 | `onchain` | 25 | "Whether the product needs the chain, and Monad specifically." | On-chain: shares, revenue custody, `sync()`, `claim()`. Off-chain: the API data and the 402 handshake. Why not Stripe: machine payers (agents) cannot open Stripe accounts; the operator never holds the revenue because x402 `payTo` is the contract; the claim is a transferable bearer asset. Why Monad: a 150k-gas distribution costs about $0.0003 at the minimum base fee of 100 MON-gwei and is final in about 600 ms ([docs/10-MONAD-NOTES.md](10-MONAD-NOTES.md)) |
@@ -58,8 +58,8 @@ The rubric below is live on the platform (`GET https://blitz.devnads.com/api/eve
 | Category | yes (`collect_category: true`) | free text, placeholder "e.g., DeFi, NFT"; rendered as a chip, keep it short | `DeFi / Agentic Payments (x402)` |
 | Description | yes | plain textarea: "Describe your project, what it does, and what makes it special..." | section 3.1 (114 words, limit 120) |
 | Project image | yes | "PNG, JPG, or GIF up to 4 MB"; error "Image is too large. Please use an image under 4 MB." | 1200×630 px PNG, ≤ 4 MB, the bear + fountain hero; created during event hours (14:30–15:00 docs slot) because asset creation is covered by the rules |
-| GitHub URL | yes | "Please enter a valid GitHub or GitLab repository URL" | `<GITHUB_URL>` — public; expected `https://github.com/mericcintosun/mavera` after `gh repo create mavera --public --source=. --push` |
-| Demo URL | yes (Submit stays disabled while empty; http/https only) | "If you don't have a demo URL, enter your repository link again." | `<DEMO_URL>` (Vercel, Root Directory `web`); fallback per the form's own text: `<GITHUB_URL>` |
+| GitHub URL | yes | "Please enter a valid GitHub or GitLab repository URL" | https://github.com/mericcintosun/mavera (public since 24 Oct 2026 12:39 TRT) |
+| Demo URL | yes (Submit stays disabled while empty; http/https only) | "If you don't have a demo URL, enter your repository link again." | https://mavera-ruby.vercel.app (Vercel, Root Directory `web`); fallback per the form's own text: `https://github.com/mericcintosun/mavera` |
 | Tweet URL | optional (`collect_tweet_url: true`) | any `x.com` or `twitter.com` URL with a non-empty path; `/status/` appears only in the placeholder | `<TWEET_URL>` from section 3.2 |
 | Team | via "Form a Team" | "Search attendees to invite..."; the form also sends `team_members` as member names joined with ", " (or "Owner") | names exactly as the platform shows them; team formed before Submit |
 | Pitch Video | required when the event has it configured | section 3.3 | `<VIDEO_FILE>`, ≤ 90 s, landscape |
@@ -72,21 +72,21 @@ Mavera turns a paid API into shares; every x402 call pays the holders within one
 - One contract (Mavera): ERC-20 shares, fixed-price buy(), permissionless sync(), pull-based claim().
 - One x402 endpoint, GET /api/price at $0.01 USDC, whose payTo is the contract itself; the client refuses to pay anywhere else.
 - One page: the fountain shows revenue, claimable and the settlement tx live.
-Contract <MAVERA_ADDRESS> on Monad testnet (10143), verified on Monadscan and MonadVision. Settlement tx <SETTLEMENT_TX_HASH>.
+Contract 0x2C2FcAE97A0925c5c660E3Ea467F931AdE760F4B on Monad testnet (10143), source-verified on Sourcify/MonadVision (exact match). Settlement tx 0xdc3384666636bf00ee33e1a683faea03c55ad1b5c07759ae49272d438862aa1e.
 Prior art: ERC-1726 accounting and Terra (Blitz Mumbai V3); x402commit and Bondrail put a company or a bond in the loop. Built with monskills.
 Testnet proof of concept with test USDC. Not an offer of securities.
 ```
 
-- [ ] Replace both placeholders after deployment; delete "verified on Monadscan and MonadVision" if either verification is not done; delete "Built with monskills." if it was not used.
+- [ ] Replace both placeholders after deployment; delete "source-verified on Sourcify/MonadVision (exact match)" if either verification is not done; delete "Built with monskills." if it was not used.
 - [ ] The first sentence is the headline the `honest_pitch` gate is judged on. It must match section 4.4's measurement and the README.
 
 ### 3.2 Tweet draft (232 characters with sample URLs, limit 280)
 
 ```text
-Mavera turns a paid API into shares; every x402 call pays the holders within one Monad block. Built today at Monad Blitz Ankara v4 on @monad testnet. Live demo: <DEMO_URL> Code: <GITHUB_URL>
+Mavera turns a paid API into shares; every x402 call pays the holders within one Monad block. Built today at Monad Blitz Ankara v4 on @monad testnet. Live demo: https://mavera-ruby.vercel.app Code: https://github.com/mericcintosun/mavera
 ```
 
-- [ ] Post only after `<DEMO_URL>` loads on a phone; attach the 16:9 variant of the hero image; copy the status URL into the Tweet URL field. `@monad` is the Monad Foundation handle listed on the Luma page; `@port_dev` is optional.
+- [ ] Post only after `https://mavera-ruby.vercel.app` loads on a phone; attach the 16:9 variant of the hero image; copy the status URL into the Tweet URL field. `@monad` is the Monad Foundation handle listed on the Luma page; `@port_dev` is optional.
 
 ### 3.3 Pitch video (when the event has it enabled)
 
@@ -104,28 +104,28 @@ Mavera turns a paid API into shares; every x402 call pays the holders within one
 
 ```sh
 cast chain-id --rpc-url https://testnet-rpc.monad.xyz
-cast code <MAVERA_ADDRESS> --rpc-url https://testnet-rpc.monad.xyz | head -c 20
-cast call <MAVERA_ADDRESS> "payTo()(address)" --rpc-url https://testnet-rpc.monad.xyz
+cast code 0x2C2FcAE97A0925c5c660E3Ea467F931AdE760F4B --rpc-url https://testnet-rpc.monad.xyz | head -c 20
+cast call 0x2C2FcAE97A0925c5c660E3Ea467F931AdE760F4B "payTo()(address)" --rpc-url https://testnet-rpc.monad.xyz
 cast balance <RELAYER_ADDRESS> --ether --rpc-url https://testnet-rpc.monad.xyz
 cast call 0x534b2f3A21130d7a60830c2Df862319e593943A3 "balanceOf(address)(uint256)" <CUSTOMER_ADDRESS> --rpc-url https://testnet-rpc.monad.xyz
 ```
 
-- [ ] Chain id prints `10143`; the code output is longer than `0x` (gate `deployed`); `payTo()` returns `<MAVERA_ADDRESS>` (route lock, [docs/03-X402-FLOW.md](03-X402-FLOW.md)).
+- [ ] Chain id prints `10143`; the code output is longer than `0x` (gate `deployed`); `payTo()` returns `0x2C2FcAE97A0925c5c660E3Ea467F931AdE760F4B` (route lock, [docs/03-X402-FLOW.md](03-X402-FLOW.md)).
 - [ ] Relayer holds ≥ 10 MON plus gas; customer wallet holds ≥ 1,000,000 USDC units (1 USDC; 50 calls at 10,000 units = 500,000 units).
-- [ ] Verified on both explorers: https://testnet.monadscan.com/address/<MAVERA_ADDRESS> shows "Exact Match" (not "Similar Match"), and the address page on https://testnet.monadvision.com shows the source (open it in a browser; curl receives 403). Commands: [docs/07-RUNBOOK.md](07-RUNBOOK.md).
+- [ ] Verified on both explorers: https://testnet.monadscan.com/address/0x2C2FcAE97A0925c5c660E3Ea467F931AdE760F4B shows "Exact Match" (not "Similar Match"), and the address page on https://testnet.monadvision.com shows the source (open it in a browser; curl receives 403). Commands: [docs/07-RUNBOOK.md](07-RUNBOOK.md).
 
 ### 4.2 App and demo URL
 
 ```sh
-curl -si "<DEMO_URL>/api/price" | grep -i -E '^HTTP|^payment-required'
-curl -s "<DEMO_URL>/api/state"
+curl -si "https://mavera-ruby.vercel.app/api/price" | grep -i -E '^HTTP|^payment-required'
+curl -s "https://mavera-ruby.vercel.app/api/state"
 curl -s https://x402-facilitator.molandak.org/supported
 ```
 
-- [ ] `GET /api/price` without payment answers 402 with a `PAYMENT-REQUIRED` header (base64 JSON) whose `payTo` is `<MAVERA_ADDRESS>`, asset `0x534b2f3A21130d7a60830c2Df862319e593943A3`, network `eip155:10143`, scheme `exact`.
+- [ ] `GET /api/price` without payment answers 402 with a `PAYMENT-REQUIRED` header (base64 JSON) whose `payTo` is `0x2C2FcAE97A0925c5c660E3Ea467F931AdE760F4B`, asset `0x534b2f3A21130d7a60830c2Df862319e593943A3`, network `eip155:10143`, scheme `exact`.
 - [ ] `GET /api/state` returns JSON; the page polls it every 2 s and never calls the public RPC from the browser.
 - [ ] The facilitator's `/supported` lists `eip155:10143` with `exact`; the x402 payment path was last exercised less than 30 min ago.
-- [ ] `<DEMO_URL>` loads on a phone over mobile data and in a private window: the fountain moves, Buy / Claim / Call API are present, explorer links open, the footer carries the disclaimer.
+- [ ] `https://mavera-ruby.vercel.app` loads on a phone over mobile data and in a private window: the fountain moves, Buy / Claim / Call API are present, explorer links open, the footer carries the disclaimer.
 - [ ] Vercel production env (`vercel env ls`): `MAVERA_ADDRESS`, `PAY_TO` (must equal `MAVERA_ADDRESS`; `web/src/lib/env.ts` refuses otherwise), `NEXT_PUBLIC_MAVERA_ADDRESS`, `RELAYER_PRIVATE_KEY`, `DATA_MODE`, `X402_PRICE_ATOMIC=10000` ([.env.example](../.env.example)).
 
 ### 4.3 Repository and CI
@@ -143,7 +143,7 @@ pnpm contracts:test
 
 - [ ] Working tree clean; `git ls-files` prints only `.env.example` (`.gitignore` excludes `.env` and `.env.*`); no private key anywhere in the repo or in the README.
 - [ ] Both workflows (`contracts`: fmt, build --locked, test with `FOUNDRY_PROFILE=ci`; `web`: lint, typecheck, test, build) are green on the latest `main` commit, and the local commands above pass.
-- [ ] README has: the one sentence, an addresses table (`<MAVERA_ADDRESS>`, deploy tx, at least two settlement tx hashes, one `Synced` tx) with Monadscan and MonadVision links, "Built at the event — prior work disclosure", the prior-art paragraph, the securities disclaimer, how to run.
+- [ ] README has: the one sentence, an addresses table (`0x2C2FcAE97A0925c5c660E3Ea467F931AdE760F4B`, deploy tx, at least two settlement tx hashes, one `Synced` tx) with Monadscan and MonadVision links, "Built at the event — prior work disclosure", the prior-art paragraph, the securities disclaimer, how to run.
 - [ ] Slither ran (CI job `slither (non-blocking)` writes its checklist to the job summary) and its findings are recorded, not merely claimed ([docs/05-TEST-PLAN.md](05-TEST-PLAN.md)).
 
 ### 4.4 Demo evidence
@@ -165,7 +165,7 @@ pnpm contracts:test
 | 15:50–15:57 | Fill the form (section 3); upload image and video; wait about 1 min for processing | all fields valid, Submit enabled |
 | 15:57–16:00 | Press Submit; read "Project submitted successfully! Your project is pending approval..." | submitted |
 | 16:00–16:15 | Approval check on the Voting tab; on `rejection_reason`, fix via Edit Project (the form sends PUT for an existing project) | approved |
-| 16:15–16:30 | Buffer. No new features. Re-open `<DEMO_URL>` on a phone once | — |
+| 16:15–16:30 | Buffer. No new features. Re-open `https://mavera-ruby.vercel.app` on a phone once | — |
 | 16:30 | Submission closes (13:30Z) | — |
 
 ```mermaid
@@ -217,8 +217,8 @@ The flow follows the platform's own tabs and API routes, from sign-in and team f
 - [ ] Approval: the project appears on the Voting tab. If it has not by 16:15, show port the "pending approval" message; approval is a platform admin action.
 - [ ] Video: if the live demo changed after recording, re-record and replace it from the Pitch Video card before 17:00 (allowed "until the show starts").
 - [ ] Pitch order: TBD on event day — ask at Dinner & demo setup (17:00–18:00); be ready to present from 18:00 with both the 90-s and the 3-min version.
-- [ ] Demo setup 17:00–18:00: laptop on the venue screen; wallet on chain 10143; relayer running; `DATA_MODE` confirmed; Monadscan open on `<MAVERA_ADDRESS>`; the customer script ready in a terminal.
-- [ ] Audience vote (20): one QR to `<DEMO_URL>` so the room can fire a $0.01 paid call from their phones — only if the x402 path has been stable since 15:00; otherwise the load script runs on screen during the pitch.
+- [ ] Demo setup 17:00–18:00: laptop on the venue screen; wallet on chain 10143; relayer running; `DATA_MODE` confirmed; Monadscan open on `0x2C2FcAE97A0925c5c660E3Ea467F931AdE760F4B`; the customer script ready in a terminal.
+- [ ] Audience vote (20): one QR to `https://mavera-ruby.vercel.app` so the room can fire a $0.01 paid call from their phones — only if the x402 path has been stable since 15:00; otherwise the load script runs on screen during the pitch.
 - [ ] Prepared answers (securities, Stripe, Pump.fun, x402commit and Bondrail, `payTo` redirect) open on a phone: [docs/08-DEMO-AND-PITCH.md](08-DEMO-AND-PITCH.md).
 - [ ] Results & awards 20:00–20:30; once the rubric is published the results view exposes `rank`, `final_score`, `failed_gates` and `comments` — read the comments, they are the jury's feedback.
 

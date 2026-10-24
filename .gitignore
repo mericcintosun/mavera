@@ -2,6 +2,9 @@
 .env
 .env.*
 !.env.example
+.wallets-addresses.txt
+keystore/
+*.keystore
 
 # OS / editor
 .DS_Store
