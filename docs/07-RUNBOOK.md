@@ -195,10 +195,10 @@ cd ~/mavera/contracts
 forge fmt
 forge build --sizes
 export CREATOR=<HOLDER_A>
-forge create src/Mavera.sol:Mavera --rpc-url $MONAD_RPC_URL --account mavera-deployer --broadcast --constructor-args $USDC_ADDRESS $CREATOR 10000 100000000000000000000 60000000000000000000
+forge create src/Mavera.sol:Mavera --rpc-url $MONAD_RPC_URL --account mavera-deployer --broadcast --constructor-args $USDC_ADDRESS $CREATOR 10000 100000000000000000000 60000000000000000000 "Mavera Shares: MON/USD Price API" mPRICE /api/price
 ```
 
-`--constructor-args` lists every argument in declaration order; append the string arguments if the final constructor has them. Without `--broadcast` it is a dry run. `forge create` uses the raw `eth_estimateGas` result as the gas limit (Monad bills the limit, so no multiplier is wanted); never add `--legacy`. If `forge script` is used instead, add `--slow --gas-estimate-multiplier 110`. The output prints `Deployer:`, `Deployed to:` and `Transaction hash:`. Then, from the repo root:
+The final constructor has eight arguments, `(address usdc, address creator, uint256 sharePrice, uint256 maxSupply, uint256 creatorShares, string name, string symbol, string endpoint)`; the non-interactive equivalent that also rewrites the three `.env` lines below is `./scripts/deploy.sh --update-env` from the repo root (uses `DEPLOYER_PRIVATE_KEY`). `--constructor-args` lists every argument in declaration order. Without `--broadcast` it is a dry run. `forge create` uses the raw `eth_estimateGas` result as the gas limit (Monad bills the limit, so no multiplier is wanted); never add `--legacy`. If `forge script` is used instead, add `--slow --gas-estimate-multiplier 110`. The output prints `Deployer:`, `Deployed to:` and `Transaction hash:`. Then, from the repo root:
 
 ```sh
 cd ~/mavera
@@ -213,7 +213,7 @@ Verify on both explorers (`contracts/`). Encode the constructor arguments once; 
 
 ```sh
 cd ~/mavera/contracts
-CTOR_ARGS=$(cast abi-encode "constructor(address,address,uint256,uint256,uint256)" $USDC_ADDRESS $CREATOR 10000 100000000000000000000 60000000000000000000)
+CTOR_ARGS=$(cast abi-encode "constructor(address,address,uint256,uint256,uint256,string,string,string)" $USDC_ADDRESS $CREATOR 10000 100000000000000000000 60000000000000000000 "Mavera Shares: MON/USD Price API" mPRICE /api/price)   # or: ./scripts/verify.sh $MAVERA_ADDRESS (repo root)
 forge verify-contract $MAVERA_ADDRESS src/Mavera.sol:Mavera --chain 10143 --verifier sourcify --verifier-url https://sourcify-api-monad.blockvision.org/
 forge verify-contract $MAVERA_ADDRESS src/Mavera.sol:Mavera --chain 10143 --verifier etherscan --etherscan-api-key $ETHERSCAN_API_KEY --constructor-args $CTOR_ARGS --watch
 ```
@@ -232,7 +232,7 @@ cast call $MAVERA_ADDRESS "claimable(address)(uint256)" $CREATOR --rpc-url $MONA
 cast call $MAVERA_ADDRESS "totalDistributed()(uint256)" --rpc-url $MONAD_RPC_URL
 ```
 
-Expected: `totalSupply` 60e18 and the creator holds all of it; `payTo()` equals `MAVERA_ADDRESS`; `pending()` 0, then 10000 after the transfer, then 0 after `sync()`; `claimable(creator)` 10000; `totalDistributed()` 10000. If a wallet was funded seconds ago, wait for 3 blocks before it sends. `--gas-limit 150000` is the spec default; replace it with the S2 measurement plus 30 %.
+Expected: `totalSupply` 60e18 and the creator holds all of it; `payTo()` equals `MAVERA_ADDRESS`; `pending()` 0, then 10000 after the transfer, then 0 after `sync()`; `claimable(creator)` 10000; `totalDistributed()` 10000. If a wallet was funded seconds ago, wait for 3 blocks before it sends. `--gas-limit 150000` is the spec default; replace it with the S2 measurement plus 30 %. Measured 2026-10-24 (`forge test --gas-report`, Monad model): an effective cold `sync()` costs at most 104,558 gas, so the scripts and the web relayer send `sync()` with a 200,000 gas limit.
 
 ### S2 11:25–12:05 — tests (`contracts/`)
 

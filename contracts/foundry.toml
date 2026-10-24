@@ -22,7 +22,8 @@ use_literal_content = true
 # Monad execution environment: gas model, MIP-8 storage pages, precompiles,
 # 128 KB contract size limit. Hardfork defaults to the latest (MonadTen).
 network = "monad"
-eth_rpc_url = "https://testnet-rpc.monad.xyz"
+# No default `eth_rpc_url`: it would make every `forge test` fork the public testnet RPC (25 rps cap,
+# minutes instead of seconds). Live commands pass `--rpc-url` explicitly (see [rpc_endpoints]).
 chain_id = 10143
 
 ffi = false

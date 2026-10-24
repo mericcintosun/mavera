@@ -1,0 +1,2 @@
+# Load-test reports and deploy logs (scripts/out/ is regenerated on every run)
+out/

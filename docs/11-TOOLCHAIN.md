@@ -174,7 +174,7 @@ optimizer_runs = 200
 via_ir = false
 use_literal_content = true
 network = "monad"
-eth_rpc_url = "https://testnet-rpc.monad.xyz"
+# No default `eth_rpc_url` (removed on event day): it made every `forge test` fork the public testnet RPC.
 chain_id = 10143
 ffi = false
 fs_permissions = []

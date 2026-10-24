@@ -1,4 +1,4 @@
-// Environment schema for the Mavera web app (configuration only).
+// Environment schema for the Mavera web app.
 // Server-only variables must never be imported from client components.
 // Documented values: ../../../.env.example
 import { z } from "zod";
@@ -67,3 +67,62 @@ export const clientEnvSchema = z.object({
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;
 export type ClientEnv = z.infer<typeof clientEnvSchema>;
+
+export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+
+/** True when the address is not the `.env.example` zero placeholder. */
+export function isDeployedAddress(address: string): boolean {
+  return address.toLowerCase() !== ZERO_ADDRESS;
+}
+
+let serverEnvCache: ServerEnv | undefined;
+
+/**
+ * Parses `process.env` lazily at request time (never at module import), so
+ * `next build` and the CI placeholder env never need real values.
+ */
+export function getServerEnv(): ServerEnv {
+  if (!serverEnvCache) {
+    serverEnvCache = serverEnvSchema.parse(process.env);
+  }
+  return serverEnvCache;
+}
+
+const clientEnvFallback: ClientEnv = {
+  NEXT_PUBLIC_MONAD_CHAIN_ID: 10143,
+  NEXT_PUBLIC_MONAD_RPC_URL: "https://testnet-rpc.monad.xyz",
+  NEXT_PUBLIC_MAVERA_ADDRESS: ZERO_ADDRESS,
+  NEXT_PUBLIC_USDC_ADDRESS: "0x534b2f3A21130d7a60830c2Df862319e593943A3",
+  NEXT_PUBLIC_EXPLORER_URL: "https://testnet.monadscan.com",
+};
+
+let clientEnvCache: ClientEnv | undefined;
+
+/**
+ * Client-safe env. Each NEXT_PUBLIC_* name is spelled out so Next.js inlines
+ * it into the browser bundle at build time. Falls back to testnet defaults
+ * (with the zero Mavera address, which the UI shows as "not deployed") instead
+ * of crashing the page when a variable is missing.
+ */
+export function getClientEnv(): ClientEnv {
+  if (clientEnvCache) {
+    return clientEnvCache;
+  }
+  const parsed = clientEnvSchema.safeParse({
+    NEXT_PUBLIC_MONAD_CHAIN_ID: process.env.NEXT_PUBLIC_MONAD_CHAIN_ID,
+    NEXT_PUBLIC_MONAD_RPC_URL: process.env.NEXT_PUBLIC_MONAD_RPC_URL,
+    NEXT_PUBLIC_MAVERA_ADDRESS: process.env.NEXT_PUBLIC_MAVERA_ADDRESS,
+    NEXT_PUBLIC_USDC_ADDRESS: process.env.NEXT_PUBLIC_USDC_ADDRESS,
+    NEXT_PUBLIC_EXPLORER_URL: process.env.NEXT_PUBLIC_EXPLORER_URL,
+  });
+  if (parsed.success) {
+    clientEnvCache = parsed.data;
+  } else {
+    console.warn(
+      "[env] NEXT_PUBLIC_* variables invalid or missing; using testnet fallbacks",
+      parsed.error.flatten().fieldErrors,
+    );
+    clientEnvCache = clientEnvFallback;
+  }
+  return clientEnvCache;
+}

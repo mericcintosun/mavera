@@ -1,1 +1,76 @@
 @import "tailwindcss";
+
+/* One accent colour (the fountain and primary buttons); neutral greys elsewhere.
+   Dark and light follow the OS; no toggle. */
+@theme {
+  --color-accent: #5b4cff;
+  --color-accent-strong: #4a3df0;
+  --color-accent-soft: #ecebff;
+  --color-ink: #14151b;
+  --color-paper: #f6f6f9;
+  --color-card: #ffffff;
+  --color-line: #e2e3ea;
+  --color-muted: #5f6270;
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-accent: #8a7dff;
+    --color-accent-strong: #a197ff;
+    --color-accent-soft: #221f3f;
+    --color-ink: #f2f2f6;
+    --color-paper: #0d0e13;
+    --color-card: #15161d;
+    --color-line: #272936;
+    --color-muted: #9a9db0;
+  }
+}
+
+html {
+  color-scheme: light dark;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes drop {
+  0% {
+    transform: translateY(-160%) scale(0.5);
+    opacity: 0;
+  }
+  35% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 0;
+  }
+}
+
+@keyframes flash {
+  0% {
+    color: var(--color-accent);
+  }
+  100% {
+    color: inherit;
+  }
+}
+
+.animate-drop {
+  animation: drop 600ms ease-in forwards;
+}
+
+.animate-flash {
+  animation: flash 900ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-drop {
+    animation: none;
+    opacity: 0;
+  }
+}

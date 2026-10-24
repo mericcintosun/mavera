@@ -3,11 +3,15 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Demo customer and load-test scripts for Mavera (x402 client). Stubs until event hours.",
+  "description": "Mavera operational scripts: x402 demo customer, load test, sync() relayer, deploy and verify helpers.",
   "scripts": {
     "customer": "tsx --env-file=../.env customer.ts",
     "load-test": "tsx --env-file=../.env load-test.ts",
-    "typecheck": "tsc --noEmit"
+    "relayer": "tsx --env-file=../.env relayer.ts",
+    "deploy": "bash deploy.sh",
+    "verify": "bash verify.sh",
+    "typecheck": "tsc --noEmit",
+    "abi": "tsx gen-abi.ts"
   },
   "dependencies": {
     "@x402/core": "2.28.0",

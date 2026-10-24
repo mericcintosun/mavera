@@ -19,3 +19,4 @@ Diagrams are Mermaid (rendered natively by GitHub); SVG exports live in [`img/`]
 | 11 | [Toolchain](11-TOOLCHAIN.md) | Verified versions, commands, dates, decisions |
 | 12 | [Submission checklist](12-SUBMISSION-CHECKLIST.md) | What the Blitz platform needs by 16:30 |
 | ADR | [adr/](adr/) | Architecture decision records 0001–0005 |
+| — | [Slither report](slither.md) | Static-analysis checklist (Slither 0.11.6) with the per-finding triage |
