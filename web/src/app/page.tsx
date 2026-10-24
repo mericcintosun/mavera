@@ -1,23 +1,32 @@
-// The single page: header, the fountain, Buy, Claim, Call the API, footer.
-// Every component is a client component; all reads come from GET /api/state.
-import { BuyCard } from "@/components/BuyCard";
-import { CallApiCard } from "@/components/CallApiCard";
-import { ClaimCard } from "@/components/ClaimCard";
-import { Footer } from "@/components/Footer";
-import { Fountain } from "@/components/Fountain";
-import { Header } from "@/components/Header";
+// One page, told like a story: hero (the bear answers with the real 402),
+// beats, how it works (scroll-driven device on live data), live fountain,
+// the contract-math playground, try it (wallet actions), why Monad, FAQ.
+import { Beats } from "@/components/sections/beats";
+import { Faq } from "@/components/sections/faq";
+import { Footer } from "@/components/sections/footer";
+import { Hero } from "@/components/sections/hero";
+import { HowItWorks } from "@/components/sections/how-it-works";
+import { Live } from "@/components/sections/live";
+import { Nav } from "@/components/sections/nav";
+import { Playground } from "@/components/sections/playground";
+import { TryIt } from "@/components/sections/try-it";
+import { WhyMonad } from "@/components/sections/why-monad";
 
 export default function Home() {
   return (
-    <main className="mx-auto flex w-full max-w-[720px] flex-col gap-4 px-4 pb-16">
-      <Header />
-      <Fountain />
-      <div className="grid gap-4 md:grid-cols-2">
-        <BuyCard />
-        <ClaimCard />
-      </div>
-      <CallApiCard />
+    <>
+      <Nav />
+      <main id="main" className="relative">
+        <Hero />
+        <Beats />
+        <HowItWorks />
+        <Live />
+        <Playground />
+        <TryIt />
+        <WhyMonad />
+        <Faq />
+      </main>
       <Footer />
-    </main>
+    </>
   );
 }

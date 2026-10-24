@@ -35,3 +35,6 @@ web/next-env.d.ts
 
 # Local scratch
 tmp/
+
+# Raw design sources (large GPT/Sora exports); optimized copies live in web/public/media
+design/raw/

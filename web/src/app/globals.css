@@ -1,76 +1,268 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
-/* One accent colour (the fountain and primary buttons); neutral greys elsewhere.
-   Dark and light follow the OS; no toggle. */
-@theme {
-  --color-accent: #5b4cff;
-  --color-accent-strong: #4a3df0;
-  --color-accent-soft: #ecebff;
-  --color-ink: #14151b;
-  --color-paper: #f6f6f9;
-  --color-card: #ffffff;
-  --color-line: #e2e3ea;
-  --color-muted: #5f6270;
-  --font-sans:
-    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, sans-serif;
+@custom-variant dark (&:is(.dark *));
+
+/* Mavera is dark-only: the navy is sampled from the hero video (#0b1324) so the
+   video blends into the page. Honey = money / primary action, mint = success /
+   holders, sky = the chain. shadcn/ui tokens map onto these below. */
+:root {
+  --radius: 1rem;
+
+  --navy: #0b1324;
+  --navy-2: #111c33;
+  --navy-3: #182744;
+  --honey: #f5b52b;
+  --honey-deep: #e39a12;
+  --mint: #2fb67c;
+  --mint-deep: #1f9765;
+  --sky: #38bdf8;
+  --cream: #fff7e6;
+
+  --background: var(--navy);
+  --foreground: #f4efe4;
+  --card: var(--navy-2);
+  --card-foreground: #f4efe4;
+  --popover: #0f1a30;
+  --popover-foreground: #f4efe4;
+  --primary: var(--honey);
+  --primary-foreground: #1a1206;
+  --secondary: #1a2744;
+  --secondary-foreground: #f4efe4;
+  --muted: #16213a;
+  --muted-foreground: #9fb0c8;
+  --accent: var(--mint);
+  --accent-foreground: #06130d;
+  --destructive: #ff6b6b;
+  --destructive-foreground: #1a0606;
+  --border: rgba(255, 255, 255, 0.09);
+  --input: rgba(255, 255, 255, 0.12);
+  --ring: var(--honey);
+  --chart-1: var(--honey);
+  --chart-2: var(--mint);
+  --chart-3: var(--sky);
+  --chart-4: #ff8a5b;
+  --chart-5: #c084fc;
+  --sidebar: var(--navy-2);
+  --sidebar-foreground: #f4efe4;
+  --sidebar-primary: var(--honey);
+  --sidebar-primary-foreground: #1a1206;
+  --sidebar-accent: #1a2744;
+  --sidebar-accent-foreground: #f4efe4;
+  --sidebar-border: rgba(255, 255, 255, 0.09);
+  --sidebar-ring: var(--honey);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-accent: #8a7dff;
-    --color-accent-strong: #a197ff;
-    --color-accent-soft: #221f3f;
-    --color-ink: #f2f2f6;
-    --color-paper: #0d0e13;
-    --color-card: #15161d;
-    --color-line: #272936;
-    --color-muted: #9a9db0;
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Brand colours as utilities: bg-honey, text-mint, border-sky/30 ... */
+  --color-navy: var(--navy);
+  --color-navy-2: var(--navy-2);
+  --color-navy-3: var(--navy-3);
+  --color-honey: var(--honey);
+  --color-honey-deep: var(--honey-deep);
+  --color-mint: var(--mint);
+  --color-mint-deep: var(--mint-deep);
+  --color-sky: var(--sky);
+  --color-cream: var(--cream);
+
+  --font-sans:
+    var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    Roboto, sans-serif;
+  --font-display:
+    var(--font-fraunces), "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  --font-mono:
+    ui-monospace, "SFMono-Regular", Menlo, Consolas, "Liberation Mono",
+    monospace;
+
+  --radius-sm: calc(var(--radius) - 6px);
+  --radius-md: calc(var(--radius) - 4px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 14px);
+
+  --animate-float: float 7s ease-in-out infinite;
+  --animate-shimmer: shimmer 2.4s linear infinite;
+  --animate-pulse-soft: pulse-soft 2.2s ease-in-out infinite;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    color-scheme: dark;
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  ::selection {
+    background: color-mix(in oklab, var(--honey) 35%, transparent);
+  }
+  :focus-visible {
+    outline: 2px solid var(--honey);
+    outline-offset: 3px;
   }
 }
 
-html {
-  color-scheme: light dark;
+/* Lenis smooth scroll (lenis/dist/lenis.css equivalent) */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis:not(.lenis-autoToggle).lenis-stopped {
+  overflow: clip;
+}
+.lenis.lenis-smooth iframe {
+  pointer-events: none;
+}
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
 }
 
-.tabular {
+/* Utilities shared by the sections */
+@utility tabular {
   font-variant-numeric: tabular-nums;
 }
+@utility glass {
+  background: color-mix(in oklab, var(--navy-2) 72%, transparent);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+}
+@utility glow-honey {
+  box-shadow:
+    0 0 0 1px rgba(245, 181, 43, 0.18),
+    0 24px 70px -24px rgba(245, 181, 43, 0.45);
+}
+@utility glow-mint {
+  box-shadow:
+    0 0 0 1px rgba(47, 182, 124, 0.2),
+    0 24px 70px -24px rgba(47, 182, 124, 0.45);
+}
+@utility text-gradient-honey {
+  background: linear-gradient(92deg, #fff1c7 0%, #f5b52b 55%, #ffb347 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+@utility bg-dots {
+  background-image: radial-gradient(
+    rgba(255, 255, 255, 0.07) 1px,
+    transparent 1px
+  );
+  background-size: 28px 28px;
+}
+@utility mask-edge {
+  -webkit-mask-image: radial-gradient(
+    120% 100% at 50% 50%,
+    #000 55%,
+    transparent 100%
+  );
+  mask-image: radial-gradient(120% 100% at 50% 50%, #000 55%, transparent 100%);
+}
 
-@keyframes drop {
-  0% {
-    transform: translateY(-160%) scale(0.5);
-    opacity: 0;
+@utility display {
+  /* Cinematic serif headlines: Fraunces with the soft axis up, tight tracking. */
+  /* @theme inline does not emit --font-display as a CSS variable, so name the
+     next/font variable directly (set on <html> by layout.tsx). */
+  font-family:
+    var(--font-fraunces), "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  font-variation-settings:
+    "SOFT" 60,
+    "opsz" 120;
+  font-weight: 500;
+  letter-spacing: -0.025em;
+  line-height: 1.02;
+  text-wrap: balance;
+}
+@utility hairline {
+  border-color: rgba(255, 255, 255, 0.07);
+}
+@utility vignette {
+  /* Dark edges so panels sink into the page like a stage. */
+  -webkit-mask-image: radial-gradient(
+    95% 85% at 50% 50%,
+    #000 38%,
+    rgba(0, 0, 0, 0.55) 66%,
+    transparent 92%
+  );
+  mask-image: radial-gradient(
+    95% 85% at 50% 50%,
+    #000 38%,
+    rgba(0, 0, 0, 0.55) 66%,
+    transparent 92%
+  );
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
   }
-  35% {
+  50% {
+    transform: translateY(-10px);
+  }
+}
+@keyframes shimmer {
+  from {
+    background-position: -200% 0;
+  }
+  to {
+    background-position: 200% 0;
+  }
+}
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
     opacity: 1;
   }
-  100% {
-    transform: translateY(0) scale(1);
-    opacity: 0;
-  }
-}
-
-@keyframes flash {
-  0% {
-    color: var(--color-accent);
-  }
-  100% {
-    color: inherit;
-  }
-}
-
-.animate-drop {
-  animation: drop 600ms ease-in forwards;
-}
-
-.animate-flash {
-  animation: flash 900ms ease-out;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .animate-drop {
-    animation: none;
-    opacity: 0;
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

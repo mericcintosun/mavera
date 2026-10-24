@@ -85,7 +85,7 @@ The payment is the input; the product is the share that gets paid.
 
 - **The payer is a machine.** x402: an agent with no bank account signs a USDC authorization; the server answers 402, then 200.
 - **The payee is the contract.** payTo is Mavera itself, so payment and dividend are one atomic flow; the operator never holds the revenue.
-- **Sub-cent split per call is only sane here.** One distribution, sync() at a 150,000-gas limit, costs about **USD 0.0003** at the 100 MON-gwei minimum base fee: under 4% of a 1-cent call.
+- **Sub-cent split per call is only sane here.** One distribution, sync() at a 200,000-gas limit, costs about **USD 0.0004** at the 100 MON-gwei minimum base fee: under 5% of a 1-cent call.
 - **Visible in about 300 ms, final at about 600 ms.** On a 12-second chain the fountain would not move.
 - **Monad runs a public x402 facilitator**, which pays the settlement gas; API Hub lists 136 pay-per-call services on mainnet today.
 
@@ -94,7 +94,7 @@ The payment is the input; the product is the share that gets paid.
 <!--
 D6 and "Why a chain, not Stripe", 1:21-1:46.
 Said: "Why a chain and not Stripe: the payer is a machine with no bank account; the payee is the contract, so payment and dividend are one atomic flow; and the share is a bearer token anyone can hold. The chain is the cap table and the escrow, not the payment rail."
-Numbers: "visible in about 300 ms, final at about 600 ms"; "about three hundredths of a cent per distribution, under 4% of a 1-cent call, at the minimum base fee". Never say "300 ms finality".
+Numbers: "visible in about 300 ms, final at about 600 ms"; "about four hundredths of a cent per distribution, under 5% of a 1-cent call, at the minimum base fee". Never say "300 ms finality".
 -->
 
 ---

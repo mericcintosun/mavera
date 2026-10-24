@@ -1,12 +1,11 @@
 "use client";
 
 import type { Address } from "viem";
+import { useConnect, useConnection, useSwitchChain } from "wagmi";
 import {
-  useConnect,
-  useConnection,
-  useConnectors,
-  useSwitchChain,
-} from "wagmi";
+  useDetectedWallets,
+  useWalletPicker,
+} from "@/components/wallet/wallet-picker";
 import { monadChain } from "@/lib/chain";
 
 export interface WalletGate {
@@ -28,16 +27,18 @@ function isProviderNotFound(error: unknown): boolean {
   );
 }
 
-/** Shared connect -> switch-chain gate for every card (wagmi 3 hooks). */
+/**
+ * Shared connect -> switch-chain gate for every action button (wagmi 3 hooks).
+ * With several browser wallets installed the connect action opens the picker
+ * so the user chooses the extension (MetaMask, Rabby, Brave...) instead of
+ * being routed to whichever one owns window.ethereum.
+ */
 export function useWalletGate(): WalletGate {
   const { address, chainId, status } = useConnection();
-  const connectors = useConnectors();
+  const wallets = useDetectedWallets();
   const connect = useConnect();
   const switchChain = useSwitchChain();
-
-  // Prefer an EIP-6963 discovered wallet over the generic window.ethereum connector.
-  const connector =
-    connectors.find((c) => c.id !== "injected") ?? connectors[0];
+  const picker = useWalletPicker();
 
   if (status === "connected") {
     if (chainId !== monadChain.id) {
@@ -45,7 +46,12 @@ export function useWalletGate(): WalletGate {
         address,
         ready: false,
         label: switchChain.isPending ? "Switching…" : "Switch to Monad Testnet",
-        action: () => switchChain.mutate({ chainId: monadChain.id }),
+        action: () => {
+          if (switchChain.isPending) {
+            return;
+          }
+          switchChain.mutate({ chainId: monadChain.id });
+        },
         disabled: switchChain.isPending,
         helper: switchChain.error ? "Switch rejected in wallet." : null,
       };
@@ -60,15 +66,19 @@ export function useWalletGate(): WalletGate {
     };
   }
 
-  if (connector === undefined || isProviderNotFound(connect.error)) {
+  const onlyWallet = wallets.length === 1 ? wallets[0] : undefined;
+  if (
+    wallets.length === 0 ||
+    (onlyWallet?.id === "injected" && isProviderNotFound(connect.error))
+  ) {
     return {
       address: undefined,
       ready: false,
       label: "No browser wallet found",
-      action: null,
-      disabled: true,
+      action: () => picker.open(),
+      disabled: false,
       helper:
-        "Install MetaMask, or use the terminal script in the Call-the-API card.",
+        "Install MetaMask or Rabby, or use the terminal command under Try it.",
     };
   }
 
@@ -78,7 +88,16 @@ export function useWalletGate(): WalletGate {
     address: undefined,
     ready: false,
     label: connecting ? "Connecting…" : "Connect wallet",
-    action: () => connect.mutate({ connector }),
+    action: () => {
+      if (connecting) {
+        return;
+      }
+      if (onlyWallet) {
+        connect.mutate({ connector: onlyWallet });
+        return;
+      }
+      picker.open();
+    },
     disabled: connecting,
     helper: null,
   };

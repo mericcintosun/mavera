@@ -1,0 +1,17 @@
+# Vercel CLI uploads every file that is not ignored here. Its built-in list skips
+# .env.local and .env.*.local but NOT a plain .env, so keep local secrets and
+# bulky local-only files out of deployment uploads. Production values live in the
+# Vercel project's environment variables.
+.env
+.env.*
+**/.env
+**/.env.*
+.wallets-addresses.txt
+design/raw
+contracts/lib
+contracts/out
+contracts/cache
+contracts/broadcast
+scripts/out
+docs/08-SLIDES.pdf
+docs/08-SLIDES.html

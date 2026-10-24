@@ -1,6 +1,6 @@
 # 05 — Test plan
 
-Mavera's headline claim is arithmetic: every x402 payment that lands in the `Mavera` contract is split pro-rata among the holders of record, nobody can claim more than their share, and the contract can always pay what it shows. This plan turns that claim into evidence a juror can check in the repository: Foundry unit tests that encode the worked example and the twelve spec corrections from [docs/02-CONTRACT-SPEC.md](02-CONTRACT-SPEC.md), bounded fuzz tests, a handler-based invariant suite with formal statements and ghost variables, Slither output committed to the repo, explorer verification on both Monad testnet explorers, and Vitest checks for the off-chain helpers (environment schema, `GET /api/price` payload formatting, route-lock predicate). On-chain accounting is tested in `contracts/`; off-chain glue is tested in `web/`. Everything here is written during event hours (hacking window 10:45–16:30); tonight only the configuration in [.env.example](../.env.example), `contracts/foundry.toml` and the CI workflows exists. Commands assume Foundry 1.8.6 and the repo layout in [contracts/README.md](../contracts/README.md).
+Mavera's headline claim is arithmetic: every x402 payment that lands in the `Mavera` contract is split pro-rata among the holders of record, nobody can claim more than their share, and the contract can always pay what it shows. This plan turns that claim into evidence a juror can check in the repository: Foundry unit tests that encode the worked example and the twelve spec corrections from [docs/02-CONTRACT-SPEC.md](02-CONTRACT-SPEC.md), bounded fuzz tests, a handler-based invariant suite with formal statements and ghost variables, Slither output committed to the repo, explorer verification on both Monad testnet explorers, and Vitest checks for the off-chain helpers (environment schema, `GET /api/price` payload formatting, route-lock predicate). On-chain accounting is tested in `contracts/`; off-chain glue is tested in `web/`. Status at 12:50 on event day: `forge test` (Foundry 1.8.6, default profile) runs 38 tests in about 14 s — 37 in `test/Mavera.t.sol` (33 unit + 4 fuzz at 512 runs) and the combined invariant campaign in `test/invariant/MaveraInvariant.t.sol` (10 `invariant_*` predicates, 128 runs × depth 64 = 8,192 handler calls, 0 reverts) — all green; `forge fmt --check`, `forge build --locked --sizes` and `forge snapshot --check --tolerance 2` pass. Commands assume Foundry 1.8.6 and the repo layout in [contracts/README.md](../contracts/README.md).
 
 ## Goals and the bar
 
@@ -8,8 +8,8 @@ The bar is the İstanbul v2 winner Kaskad, audited at its last event-day commit 
 
 | Item | Kaskad (event day) | Mavera target | Deadline |
 | --- | --- | --- | --- |
-| Foundry test functions run in CI | 43 | 48 planned (31 unit + 4 fuzz + 13 invariants); at least 28 green by 12:20 (20 P0 unit + 4 fuzz + 4 invariants) | 12:20 / 15:00 |
-| Invariants | 3, no handler details | INV-1, INV-4, INV-5, INV-8 first; handler with 5 bounded actions, ghost sums, `fail_on_revert = true` | 12:20 |
+| Foundry test functions run in CI | 43 | 47 implemented and green (33 unit + 4 fuzz + 10 `invariant_*`), plus INV-10, INV-11, INV-12, INV-13 asserted inside the handler actions; forge reports the ten invariants as one combined campaign, so the summary line reads "38 tests passed" | done 12:20 |
+| Invariants | 3, no handler details | INV-1 … INV-13 (see Invariants); handler with 6 bounded actions, ghost sums, `fail_on_revert = true` | done |
 | Fuzz tests | 1 | 4, all input-bounded (see Fuzz tests) | 12:20 |
 | Vitest `it()` blocks | 15 | ≥ 15 across env schema, payload helpers, route lock | 14:30 |
 | Slither | claimed in README only | run with Slither 0.11.6, output and triage committed as `docs/slither.md` (file created on event day) | 15:00 |
@@ -21,7 +21,7 @@ Minimum acceptable by 12:20 (the runbook slot "11:40–12:20 tests", [docs/07-RU
 
 ## Fixture and conventions
 
-- Proposed layout (final names are the implementer's call): `contracts/test/Mavera.t.sol` (unit + fuzz), `contracts/test/MaveraInvariants.t.sol` (invariants), `contracts/test/handlers/MaveraHandler.sol`, `contracts/test/mocks/MockUSDC.sol` (6 decimals, test-controlled `mint`), `contracts/test/mocks/ReentrantUSDC.sol` (re-enters on `transfer`/`transferFrom`), optional `PausableMockUSDC.sol`.
+- Layout as implemented: `contracts/test/Mavera.t.sol` (unit + fuzz), `contracts/test/invariant/MaveraInvariant.t.sol` (invariants), `contracts/test/invariant/MaveraHandler.sol` (handler), `contracts/test/MockUSDC.sol` (both `MockUSDC`, 6 decimals with test-controlled `mint`, and `ReentrantUSDC`, which re-enters on `transfer`/`transferFrom`). No `PausableMockUSDC` was written (the P2 pause test is not implemented).
 - Default fixture F: `Mavera(usdc = MockUSDC, creator, sharePrice = 10_000 units per 1e18 share-wei, maxSupply = 1_000e18 share-wei, creatorShares = 60e18, endpoint = "<API_URL>/api/price")`; buyer funded with 1_000_000 units (1 USDC) and approved. The 60/40 state means creator 60e18, buyer 40e18 (cost 400_000 units), as in the worked example of [docs/02-CONTRACT-SPEC.md](02-CONTRACT-SPEC.md). Demo parameters (`maxSupply` 100e18) are TBD on event day and independent of this fixture.
 - Units: USDC amounts in atomic units (6 decimals), shares in share-wei (1e18 per share), magnifier M = 1e36, gas in gas units.
 - Names are what `forge` discovers: `test_*` unit, `testFuzz_*` fuzz (any `test*` with parameters), `invariant_*` invariants. Priorities: P0 must be green by 12:20, P1 by 15:00, P2 if time remains.
@@ -63,6 +63,8 @@ Minimum acceptable by 12:20 (the runbook slot "11:40–12:20 tests", [docs/07-RU
 | `test_Claim_RevertsWhenUsdcPaused` | `PausableMockUSDC` paused | `claim()` | reverts; documents the USDC pause/blacklist trust assumption | P2 | correction 11, A2 |
 | `test_Gas_TransferWithSyncInUpdate` | pending 0 and pending > 0 | `transfer` | gas recorded via `forge snapshot`; compare with the spec estimate of ≈ 38–45k extra gas; run at 11:00, it feeds the attribution decision | P0 | gas |
 
+Implemented beyond this table: `test_DirectUsdcTransferCountsAsRevenue`, `test_Sync_NoopOnFreshContract`, `test_WorkedExample_Section8` (the full worked example of the spec). Not implemented: `test_Claim_RevertsWhenUsdcPaused` (P2). Everything else in the table exists under the listed name and passes.
+
 Correction 12 (reference URLs) has no test; it is checked by the link list in [docs/02-CONTRACT-SPEC.md](02-CONTRACT-SPEC.md). Worked-example numbers (6_000/4_000, 18_000/12_000, ±6e39, 21_000/13_000/1_000, dust 1 after a 7-unit payment) come from the exact-integer model behind the spec; the 4-holder dust case above is derived from the same identity `dust * M == R + Σ (E(h) mod M)` with `ΔA = 1e36 / 1e18 = 1e18` per 1-unit payment.
 
 ## Fuzz tests
@@ -85,12 +87,12 @@ Ghost variables are maintained by the handler; `E(h) = accPerShare * balanceOf(h
 | Ghost | Update rule |
 | --- | --- |
 | `ghost_paid` | += every amount the handler mints into the Mavera address (settlements, donations) |
-| `ghost_R` | before every call that can sync with `P > 0` (`sync`, `buy`, `claim`, `transfer` under sync-in-`_update`): `P = usdc.balanceOf(mavera) - accounted(); if P > 0 and totalSupply() > 0: ghost_R += mulmod(P, M, totalSupply())` |
+| `ghost_R` | before every call that can sync with `P > 0` (`sync`, `buy`, `claim`, `transfer`, `transferFrom` under sync-in-`_update`), via `_noteSync()`: `P = pending(); if P > 0 and totalSupply() > 0: ghost_R += mulmod(P, M, totalSupply())` |
 | `ghost_syncs` | += 1 under the same condition |
 | `ghost_claimed` | += amount paid by each `claim` |
 | `ghost_proceeds` | += `cost` of each `buy` (USDC moved to creator) |
-| `ghost_accPrev`, `ghost_distPrev` | previous `accPerShare`, `totalDistributed` (monotonicity) |
-| `calls[selector]` | per-action counters printed by `callSummary()`; with `show_metrics = true` they prove every action actually ran |
+| `ghost_accPrev`, `ghost_distPrev`, `ghost_claimedPrev[h]` | previous `accPerShare`, `totalDistributed`, `claimed(h)` (monotonicity, asserted in `_after()` after every action) |
+| `calls[bytes32]` | per-action counters (`"buy"`, `"buy_skipped"`, `"transfer_skipped"`, `"claim_skipped"`, …); the proof that every action actually ran is the `show_metrics = true` table forge prints (`forge test --match-path 'test/invariant/*' -vv`): last run 8,192 calls, 0 reverts, 0 discards, 1,302–1,427 calls per selector |
 
 | ID | `invariant_*` name | Formal statement | Where checked |
 | --- | --- | --- | --- |
@@ -101,18 +103,20 @@ Ghost variables are maintained by the handler; `E(h) = accPerShare * balanceOf(h
 | INV-2 | `invariant_CashIdentity` | `usdc.balanceOf(mavera) == ghost_paid - ghost_claimed == accounted + pending()` | after every call |
 | INV-3 | `invariant_AccountedIdentity` | `accounted == totalDistributed - Σ_h claimed(h)`; `Σ_h claimed(h) == ghost_claimed` | after every call |
 | INV-6 | `invariant_EntitlementConservation` | `Σ_h E(h) == M * totalDistributed - ghost_R`; also `== accPerShare * totalSupply() + Σ_h corrections(h)`; `Σ_h corrections(h) <= 0` | after every call, re-checked in `afterInvariant()` |
-| INV-7 | `invariant_PerHolderSanity` | for all h: `E(h) >= 0` and `floor(E(h) / M) >= claimed(h)` | after every call |
-| INV-9 | `invariant_Monotonicity` | `accPerShare >= ghost_accPrev`; `totalDistributed >= ghost_distPrev`; each `claimed(h)` non-decreasing | after every call |
-| INV-10 | handler assertion in `buy` | `usdc.balanceOf(mavera)` and `pending()` unchanged; `usdc.balanceOf(creator)` += `cost`; `ghost_proceeds` matches | inside the action |
-| INV-11 | `invariant_SyncIdempotent` | after any `sync`: `pending() == 0`; a second `sync` changes no storage and emits nothing (`vm.recordLogs`) | after every call |
-| INV-12 | handler assertion in `transfer` | post-sync `claimable(from)` and `claimable(to)` unchanged by the transfer | inside the action |
-| INV-13 | `invariant_NoZeroCostMint` | every `Bought` event has `cost >= 1` and `shares >= 1` | log scan |
+| INV-7 | `invariant_PerHolderSanity` | for all h: `E(h) >= 0`, `floor(E(h) / M) >= claimed(h)`, `claimable(h) >= cl_stored(h)`; `claimable()` is 0 (and does not revert) for `address(0)`, the contract and the handler | after every call |
+| INV-9 | `invariant_Monotonicity` | `accPerShare >= ghost_accPrev`; `totalDistributed >= ghost_distPrev`; each `claimed(h)` non-decreasing (also asserted by the handler's `_after()` after every action) | after every call |
+| INV-10 | handler assertion in `buy` and `invariant_BuyProceedsNeverPool` | in `buy`: `usdc.balanceOf(mavera)` and `pending()` unchanged, `usdc.balanceOf(creator)` += `cost` (0 when the creator buys), `totalSupply` += `shares`; globally: `totalDistributed == ghost_paid - pending()` and `usdc.totalSupply() >= ghost_paid + ghost_proceeds` | inside the action and after every call |
+| INV-11 | handler assertion in `sync` | after `sync`: `pending() == 0`; a second `sync` emits nothing (`vm.recordLogs`) and leaves `accPerShare` and `accounted` unchanged | inside the action |
+| INV-12 | handler assertion in `transfer` and `transferFrom` | post-sync `claimable(from)` and `claimable(to)` unchanged by the transfer; `pending() == 0` afterwards | inside the action |
+| INV-13 | handler assertion in `buy` | the `Bought` event emitted by the buy has `shares >= 1`, `cost >= 1` and `cost == ceil(shares * sharePrice / 1e18)` | log scan inside the action |
+
+Ten of the thirteen are `invariant_*` predicates checked by forge after every handler call; INV-10 (per-call part), INV-11, INV-12 and INV-13 are assertions inside the handler actions, so a violation fails the campaign as a handler revert (`fail_on_revert = true`).
 
 ### Handler design
 
-- Targets: `targetContract(address(handler))` only ("Only target the handler", https://www.getfoundry.sh/guides/invariant-testing, accessed 2026-10-24), restricted with `targetSelector` to the five selectors `pay(uint256)`, `sync()`, `buy(uint256,uint256)`, `transfer(uint256,uint256,uint256)`, `claim(uint256)`. forge-std v1.17.0's `FuzzSelector` carries the handler address and a `bytes4[]` selector list (https://github.com/foundry-rs/forge-std/blob/v1.17.0/src/StdInvariant.sol, accessed 2026-10-24).
-- Actors: `creator` plus 5 `makeAddr` actors; `useActor(seed)` picks `actors[bound(seed, 0, 5)]` and runs the action under `vm.startPrank`.
-- Bounds: `pay`: `amount = bound(amount, 1, 1e12)` units. `buy`: `room = maxSupply - totalSupply(); return if room == 0; shares = bound(shares, 1, min(room, 1e24))`; mint and approve the ceil cost for the actor. `transfer`: `bal = balanceOf(from); return if bal == 0; amount = bound(amount, 1, bal)`; `from == to` is allowed and occurs naturally; a `transferFrom` variant via `approve`. `claim`: `return if claimable(actor) == 0` after `_noteSync()`.
+- Targets: `targetContract(address(handler))` only ("Only target the handler", https://www.getfoundry.sh/guides/invariant-testing, accessed 2026-10-24), restricted with `targetSelector` to the six selectors `pay(uint256)`, `sync()`, `buy(uint256,uint256)`, `transfer(uint256,uint256,uint256)`, `transferFrom(uint256,uint256,uint256,uint256)`, `claim(uint256)`. forge-std v1.17.0's `FuzzSelector` carries the handler address and a `bytes4[]` selector list (https://github.com/foundry-rs/forge-std/blob/v1.17.0/src/StdInvariant.sol, accessed 2026-10-24).
+- Actors: `creator` plus 5 `makeAddr` actors (`actor1` … `actor5`); `_actor(seed)` picks `actors[bound(seed, 0, 5)]` and the action runs under `vm.prank` / `vm.startPrank`.
+- Bounds: `pay`: `amount = bound(amount, 1, 1e9)` units (1,000 USDC). `buy`: `room = maxSupply - totalSupply(); return if room == 0; shares = bound(shares, 1, room)`; mint and approve the ceil cost for the actor. `transfer`: `bal = balanceOf(from); return if bal == 0; amount = bound(amount, 1, bal)`; `from == to` is allowed and occurs naturally; `transferFrom` is the same with an `approve` from `from` to a third seeded `spender`. `claim`: `return if claimable(actor) == 0` (pending-inclusive, so the skip is exact), then `_noteSync()` and the claim. Skipped calls are counted (`calls["buy_skipped"]` etc.) and return without reverting.
 - What must never revert: with `[invariant] fail_on_revert = true` (repo setting) every Mavera revert path is pre-empted by the handler — `buy` over `maxSupply`, `buy(0)`, `claim` with nothing, `transfer` to `address(mavera)`, missing USDC allowance or balance. Any revert that still happens is a real finding, not noise.
 - `afterInvariant()` (exact signature, one per contract) re-checks INV-5 and INV-6 on the final state; with 6 actors the per-call sums are cheap enough to keep `check_interval = 1`.
 
@@ -122,10 +126,10 @@ flowchart LR
     AC["creator and actor1 .. actor5 (makeAddr)"]
   end
   subgraph handler["MaveraHandler (the only targetContract)"]
-    P["pay(amount) bound 1..1e12 units"]
+    P["pay(amount) bound 1..1e9 units"]
     S["sync()"]
     B["buy(seed, shares) bound 1..room"]
-    T["transfer(seedFrom, seedTo, amount) bound 1..balance"]
+    T["transfer / transferFrom(seedFrom, seedTo, amount) bound 1..balance"]
     C["claim(seed) skipped when claimable == 0"]
     N["_noteSync(): ghost_R += mulmod(P, 1e36, totalSupply)"]
   end
@@ -138,13 +142,13 @@ flowchart LR
     M["Mavera: buy / sync / claim / _update"]
     U["MockUSDC (6 decimals, handler-controlled mint)"]
   end
-  subgraph inv["MaveraInvariants.t.sol (after every call)"]
+  subgraph inv["MaveraInvariant.t.sol (after every call)"]
     I1["invariant_Solvency (INV-1)"]
     I4["invariant_ConservationWithDust (INV-4)"]
     I5["invariant_ExactDust (INV-5)"]
     I8["invariant_SupplyAndZeroAddress (INV-8)"]
-    IR["INV-2, 3, 6, 7, 9, 11, 13 and afterInvariant()"]
-    IH["INV-10 and INV-12 asserted inside buy and transfer"]
+    IR["INV-2, 3, 6, 7, 9, 10 (global) and afterInvariant()"]
+    IH["INV-10, 11, 12, 13 asserted inside buy, sync, transfer"]
   end
   actors --> handler
   P --> U
@@ -181,8 +185,8 @@ invariant = { runs = 256, depth = 128 }
 
 | Profile | Fuzz runs per test | Handler calls per invariant campaign (runs × depth) | Expected wall-clock |
 | --- | --- | --- | --- |
-| default (laptop loop) | 512 | 128 × 64 = 8,192 | TBD on event day — measure once with `time forge test --match-test invariant`; the toolchain research expects seconds (unverified) |
-| `ci` (`FOUNDRY_PROFILE=ci`) | 2048 | 256 × 128 = 32,768 | TBD; `contracts.yml` caps the job at `timeout-minutes: 20` (forge defaults would be 256 runs and 256 × 500 = 128,000 calls) |
+| default (laptop loop) | 512 | 128 × 64 = 8,192 | measured 12:50 event day on the Apple-silicon laptop: invariant campaign 12–14 s, unit + fuzz suite 0.25 s, whole `forge test` about 14 s wall-clock including compile check |
+| `ci` (`FOUNDRY_PROFILE=ci`) | 2048 | 256 × 128 = 32,768 | not yet measured; linear extrapolation is about 1 min for the invariants; `contracts.yml` caps the job at `timeout-minutes: 20` (forge defaults would be 256 runs and 256 × 500 = 128,000 calls) |
 
 Forge 1.8.6 defaults differ from the repo in two places that matter: `[invariant] fail_on_revert = false` (we set `true` because the handler bounds inputs) and `[fuzz] fail_on_revert = true` (kept; it is why fuzz inputs are bounded). `isolate = true` is the 1.8 default, so gas numbers are per-transaction and differ from pre-1.8 snapshots. Since Foundry 1.8.0, compatible boolean invariant functions in one contract share a single campaign and corpus, with failures reported per predicate. Failing sequences persist under `cache/invariant` (`failure_persist_dir`); do not commit them.
 
@@ -196,14 +200,14 @@ foundryup --install 1.8.6
 forge --version
 ```
 
-`forge --version` must print `1.8.6`; if it does not, nothing below (including Slither, which shells out to `forge`) is valid. Versions and the full toolchain rationale are in [docs/11-TOOLCHAIN.md](11-TOOLCHAIN.md). Then:
+`forge --version` must print `1.8.6`; if it does not, nothing below (including Slither, which shells out to `forge`) is valid. The `anvil` processes are spawned by the VS Code "Tools for Solidity" (Wake) extension and come back while VS Code runs, so `foundryup` may keep refusing ("'anvil' is currently running"). Fallback that touches nothing in `~/.foundry`: download the release tarball `https://github.com/foundry-rs/foundry/releases/download/v1.8.6/foundry_v1.8.6_darwin_arm64.tar.gz`, extract it into a scratch directory outside the repo, and either call that `forge` by absolute path or prepend the directory to `PATH` in the shell (`export PATH=<scratch-dir>:$PATH`); this is how the 12:50 results above were produced. Versions and the full toolchain rationale are in [docs/11-TOOLCHAIN.md](11-TOOLCHAIN.md). Then:
 
 ```sh
 cd /Users/mericcintosun/mavera/contracts
 forge fmt --check
 forge build --locked --sizes
 forge test -vvv
-forge test --match-test invariant -vvv
+forge test --match-path 'test/invariant/*' -vv
 forge test --match-test invariant_Solvency -vvvv
 FOUNDRY_PROFILE=ci forge test -vvv
 forge coverage --report lcov --report-file lcov.info
@@ -212,7 +216,7 @@ forge snapshot --check --tolerance 2
 forge test --gas-report
 ```
 
-Notes: `-vvvv` on a failing invariant prints the shrunk call sequence; `forge coverage --ir-minimum` if the coverage build hits stack-too-deep; `forge snapshot` writes `.gas-snapshot` (commit it once a baseline exists; `--check` is the CI candidate for later); `--gas-report` is filtered to `Mavera` by `gas_reports` and reflects MIP-8 pricing because `network = "monad"` is set. From the repo root, `pnpm contracts:test` runs `forge test --root contracts`.
+Notes: `--match-path 'test/invariant/*' -vv` prints the per-selector call / revert / discard table (`show_metrics`); `--match-test invariant_Solvency` runs the single predicate (about 2.5 s) and `--match-test invariant` the whole campaign; `-vvvv` on a failing invariant prints the shrunk call sequence; `forge coverage --ir-minimum` if the coverage build hits stack-too-deep; `forge snapshot` writes `.gas-snapshot` (commit it once a baseline exists; `--check` is the CI candidate for later); `--gas-report` is filtered to `Mavera` by `gas_reports` and reflects MIP-8 pricing because `network = "monad"` is set. From the repo root, `pnpm contracts:test` runs `forge test --root contracts`.
 
 ## Static analysis
 
@@ -297,23 +301,23 @@ Not in CI by design: `forge coverage` (local artifact), `forge snapshot --check`
 
 ## Event-day acceptance checklist: tests done by 12:20
 
-- [ ] `forge --version` prints `1.8.6` in every open shell (also the one Slither will use).
-- [ ] `forge build --locked --sizes` passes; `Mavera` runtime size is well under 131,072 bytes.
+- [ ] `forge --version` prints `1.8.6` in every open shell (also the one Slither will use). 12:50: the PATH `forge` is still 1.7.1; results below were produced with the 1.8.6 tarball binary (see Commands).
+- [x] `forge build --locked --sizes` passes; `Mavera` runtime size is 5,115 bytes (initcode 7,396), well under 131,072 bytes.
 - [ ] 11:00: `test_Gas_TransferWithSyncInUpdate` measured; attribution decision (sync-in-`_update` vs relayer-only) recorded in [docs/02-CONTRACT-SPEC.md](02-CONTRACT-SPEC.md) and the ADR index [docs/adr/README.md](adr/README.md); `test_Transfer_BeforeSync_Attribution` encodes it.
 - [ ] Throwaway deployment verified on Monadscan (Etherscan V2) and BlockVision Sourcify; addresses kept in the runbook notes.
-- [ ] All 20 P0 unit tests green under `forge test -vvv`.
-- [ ] 4 fuzz tests green at 512 runs with no revert-caused failures.
-- [ ] `invariant_Solvency`, `invariant_ConservationWithDust`, `invariant_ExactDust`, `invariant_SupplyAndZeroAddress` green at 128 × 64; `show_metrics` output shows all five handler actions with non-zero call counts.
-- [ ] `forge fmt --check` clean; `.gas-snapshot` written by `forge snapshot` and committed.
+- [x] All 20 P0 unit tests green under `forge test -vvv` (33 unit tests pass in total).
+- [x] 4 fuzz tests green at 512 runs with no revert-caused failures.
+- [x] `invariant_Solvency`, `invariant_ConservationWithDust`, `invariant_ExactDust`, `invariant_SupplyAndZeroAddress` (and the other six predicates) green at 128 × 64; `show_metrics` output shows all six handler actions with non-zero call counts (1,302–1,427 each, 0 reverts).
+- [x] `forge fmt --check` clean; `.gas-snapshot` written by `forge snapshot` and `forge snapshot --check --tolerance 2` passes.
 - [ ] `FOUNDRY_PROFILE=ci forge test -vvv` started in a background shell; result checked before 13:15.
 - [ ] First push: `contracts.yml` `forge` job green (Slither job may be yellow).
-- [ ] By 15:00: remaining P1 tests, all 13 invariants, Slither run with `docs/slither.md` committed, `lcov.info` generated, Vitest ≥ 15 `it()` green, final contract verified on both explorers with links in the README.
+- [ ] By 15:00: remaining P1 tests (done), all 13 invariants (done: 10 predicates + 4 handler assertions), Slither run with `docs/slither.md` committed (done), `lcov.info` generated, Vitest ≥ 15 `it()` green, final contract verified on both explorers with links in the README.
 
 ## Open questions
 
 - Attribution: the ≈ 38–45k-gas estimate for `sync()` inside `_update` is unmeasured; the 11:00 snapshot decides the default and the expected values of `test_Transfer_BeforeSync_Attribution`.
-- Wall-clock time of the invariant campaigns on the laptop and on `ubuntu-latest` (8,192 and 32,768 handler calls) is unmeasured; adjust `depth` if the dev loop exceeds a minute.
-- Whether `forge coverage` behaves identically under `network = "monad"` was not exercised in research.
+- Wall-clock time of the invariant campaign on `ubuntu-latest` (32,768 handler calls) is unmeasured; the laptop runs 8,192 calls in 12–14 s.
+- `forge coverage --report summary --report lcov` runs under `network = "monad"` (verified 12:55, about 30 s): `src/Mavera.sol` 100% lines (64/64), 96.7% statements, 83.3% branches (15/18), 100% functions; `lcov.info` is a local artifact, not committed.
 - Sourcify match level (`match` vs `exact_match`) with `bytecode_hash = "ipfs"`, and whether MonadVision displays verifications that exist only on sourcify.dev — hence verifying on both instances.
 - Final constructor signature and argument order (needed for `cast abi-encode` on the Etherscan path) are fixed only when `Mavera.sol` compiles.
 - Whether the mock USDC should model Circle's `pause`/`blacklist` (P2 test) or stay minimal; the trust assumption is documented either way.

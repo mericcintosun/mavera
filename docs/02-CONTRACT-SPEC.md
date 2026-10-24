@@ -136,7 +136,7 @@ view claimable(h):                                                 -- pending-in
     return toUint256(toInt256(A * balanceOf(h)) + corrections[h]) / M - claimed[h]
 ```
 
-The stored-only variant (same formula with A = `accPerShare`) is what `claim()` uses after its own `sync()`; the two agree whenever `pending() == 0`.
+The stored-only variant (same formula with A = `accPerShare`) is what `claim()` uses after its own `sync()`; the two agree whenever `pending() == 0`. Implementation note: `Mavera._claimableAt` additionally returns 0 when the entitlement is `<= 0` or when `floor(E_h / M) < claimed[h]`, defensive branches that section 5.6 item 2 shows are unreachable; on every reachable state it returns exactly the formula above.
 
 ### 5.3 sync
 
@@ -197,7 +197,7 @@ Sign convention (identical to ERC-1726): the sender's correction gains A x v bec
 2. Entitlements are non-negative and monotone. Only `sync` changes E_h, by ΔA_i x b_h(t_i) >= 0, so E_h(t) = Σ_i ΔA_i x b_h(t_i); hence `uint256(E_h)` is safe, `floor(E_h / M) - k_h >= 0` always, and a holder who sells all shares keeps a frozen E_h: past revenue stays with past holders.
 3. Conservation (corrected). Σ_h E_h changes only at syncs, each by ΔA_i x TS_i = P_i x M - r_i, so **Σ_h E_h = M x D - R** with 0 <= R < Σ_i TS_i. Because Σ_h E_h = A x TS + Σ_h c_h by definition, Σ_h c_h = M x D - R - A x TS; a mint of v at magnifier A lowers Σ c by A x v and transfers are zero-sum. So Σ_h E_h = A x TS only while no mint happened at A > 0; after any `buy` at A > 0 it is smaller by exactly the negated sum of corrections. The handoff's "Σ entitlement == accPerShare x totalSupply" is wrong as an invariant.
 4. Why `buy` and `claim` sync first. If P units were pending when a buyer minted v at A, the next sync would give the buyer about P x v / (TS + v) units of revenue that arrived before they held anything, at the expense of every old holder; the buy is profitable whenever P / (TS + v) > sharePrice / 1e18. Syncing first credits already-landed revenue to the old holders. Likewise `claim` must sync first or a holder could be paid less than they are owed while the contract holds the money.
-5. Dust identity. Define dust := D - Σ_h k_h - Σ_h floor(E_h / M). With ρ_h := E_h mod M, **dust x M = R + Σ_h ρ_h** exactly.
+5. Dust identity. Define dust := D - Σ_h k_h - Σ_h claimable_stored(h) = D - Σ_h floor(E_h / M), where claimable_stored(h) := floor(E_h / M) - k_h is the stored-basis claimable of section 5.2 (the claimed units cancel; subtracting both Σ_h k_h and Σ_h floor(E_h / M) would count them twice). With ρ_h := E_h mod M, **dust x M = R + Σ_h ρ_h** exactly.
 6. Dust bound (corrected). 0 <= dust <= floor((Σ_i (TS_i - 1) + H x (M - 1)) / M) <= H + floor(n x TS_max / M) for H holders and n effective syncs. For every realistic deployment n x TS_max < M (for example 1e6 syncs x 1e24 share-wei = 1e30), so **dust <= H**. Dust is not monotone: it drops when a holder's ρ_h crosses M. The handoff bound `dust < totalSupply / 1e18 + 1` is wrong: with TS = 1e18 split over 1,000 holders of 1e15 and 999 payments of 1 unit, each synced, every E_h = 9.99e35 < M, so Σ claimable = 0 and dust = 999 while the handoff bound says 2 (the 1,000th unit pays everyone 1 unit and dust returns to 0). Per-holder floor dust (< 1 unit each) is recoverable; sync remainders r_i / M (< TS / M, under 1e-12 unit per sync at TS <= 1e24) are not.
 7. Cash identities. acc = D - Σ_h k_h; acc = Σ_h floor(E_h / M) - Σ_h k_h + dust = Σ claimable_stored + dust; bal = acc + P with P >= 0 as long as USDC leaves only through `claim`.
 
@@ -213,7 +213,7 @@ Constraints, applied from the ERC-1726 magnitude discussion: (i) P x M < 2^256; 
 | Pathological: lifetime 1e15, TS_min = 1 share-wei, b <= 1e24 | 1e51 | 1e75 | yes (margin 58x) | yes |
 | Impossible: lifetime 1e17 (more USDC than exists), TS_min = 1 share-wei, b <= 1e27 | 1e53 | 1e80 | **no** | 1e53, yes |
 
-Safety condition for (iii): lifetime revenue x (maxSupply / creatorShares) < 2^255 / M, about 5.79e40 units. With `creatorShares >= 1e18` and `maxSupply <= 1e24` the ratio is at most 1e6, so lifetime revenue would have to exceed 5.79e34 units (5.79e28 USDC). (i) needs P >= 1.16e41 units, more than all USDC that exists (the testnet token's total supply was 9,227,675,640,016,803 units on 2026-10-24). Precision sets no lower bound on TS: the per-sync loss r_i / M shrinks with smaller TS, and ΔA >= 1 for any P >= 1 unit while TS < 1e36. Demo parameters (60e18, 100e18, cent-sized payments) sit about 20 orders of magnitude inside the safe region.
+Safety condition for (iii): lifetime revenue x (maxSupply / creatorShares) < 2^255 / M, about 5.79e40 units. With `creatorShares >= 1e18` and `maxSupply <= 1e24` the ratio is at most 1e6, so lifetime revenue would have to exceed 5.79e34 units (5.79e28 USDC). (i) needs P >= 1.16e41 units, more than all USDC that exists (the testnet token's total supply was 9,227,675,640,016,803 units on 2026-10-24). Precision sets no lower bound on TS: the per-sync loss r_i / M shrinks with smaller TS, and ΔA >= 1 for any P >= 1 unit while TS < 1e36. Demo parameters (60e18, 100e18, cent-sized payments) sit more than 20 orders of magnitude inside the safe region: even 1e15 units of lifetime revenue would give A x b <= 1e15 x 1e36 / 6e19 x 1e20, about 1.7e51, against 5.79e76.
 
 ## 6. Attribution decision: who gets a payment that is still unsynced?
 
@@ -288,7 +288,7 @@ flowchart LR
 
 Diagram 5: how each operation moves `accPerShare`, `corrections`, `claimed`, `accounted` and `totalDistributed`; only `sync` raises entitlements, mints and transfers only re-label them, and only `claim` moves USDC out.
 
-Worked example, exact integers. Parameters: `sharePrice = 10_000`, `creatorShares = 60e18`, buyer buys `40e18` (cost 400_000 units = 0.40 USDC, paid to the creator), payments of 10_000, 20_000 and 5_000 units, one transfer of 20e18 after sync #2, one claim, then a 7-unit payment to show dust. Balances are shown in whole shares (times 1e18 share-wei); `accPerShare` is exact; the correction 6e39 is exactly 3e20 x 20e18, that is 6 followed by 39 zeros; "Σcl" is the sum of claimables; dust = D - Σ claimed - Σcl.
+Worked example, exact integers. Parameters: `sharePrice = 10_000`, `creatorShares = 60e18`, buyer buys `40e18` (cost 400_000 units = 0.40 USDC, paid to the creator), payments of 10_000, 20_000 and 5_000 units, one transfer of 20e18 after sync #2, one claim, then a 7-unit payment to show dust. Balances are shown in whole shares (times 1e18 share-wei); `accPerShare` is exact; the correction 6e39 is exactly 3e20 x 20e18, that is 6 followed by 39 zeros; the claimable columns and their sum "Σcl" are on the stored basis (A = `accPerShare`, section 5.2), so in the rows where USDC is pending (steps 2, 4, 7 and 10) the pending-inclusive `claimable()` view already returns the next row's values; dust = D - Σ claimed - Σcl.
 
 | Step | Event | accPerShare | accounted | totalDistributed | contract USDC | creator b / c / claimable / claimed | buyer b / c / claimable / claimed | third b / c / claimable / claimed | Σcl | dust | In plain words |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -368,14 +368,14 @@ forge test --match-test test_Gas_TransferWithSyncInUpdate -vvv
 
 ## 12. Invariants summary
 
-Checked after every handler call in the Foundry invariant suite; handler design, ghost variables and the unit tests are in [05-TEST-PLAN.md](05-TEST-PLAN.md). H is the fixed actor count, R the ghost sum of sync remainders, E(h) is computed from the public getters.
+Checked after every handler call in the Foundry invariant suite; handler design, ghost variables and the unit tests are in [05-TEST-PLAN.md](05-TEST-PLAN.md). H is the fixed actor count, R the ghost sum of sync remainders, E(h) = `accPerShare x balanceOf(h) + corrections(h)` is computed from the public getters, and cl_stored(h) := floor(E(h) / M) - claimed(h) is the stored-basis claimable (the public `claimable(h)` is pending-inclusive, section 5.2, and exceeds cl_stored(h) by h's share of `pending()` until the next sync).
 
 | ID | Statement |
 | --- | --- |
-| INV-1 Solvency | `usdc.balanceOf(mavera) >= accounted >= Σ_h claimable(h)` |
+| INV-1 Solvency | `usdc.balanceOf(mavera) >= accounted >= Σ_h cl_stored(h)` and `usdc.balanceOf(mavera) >= Σ_h claimable(h)` |
 | INV-2 Cash identity | `usdc.balanceOf(mavera) == ghost_paid - ghost_claimed == accounted + pending()` |
 | INV-3 Accounted identity | `accounted == totalDistributed - Σ_h claimed(h)` |
-| INV-4 Conservation with dust | `dust := totalDistributed - Σ claimed - Σ claimable; 0 <= dust <= H` |
+| INV-4 Conservation with dust | `dust := totalDistributed - Σ claimed - Σ cl_stored; 0 <= dust <= H` |
 | INV-5 Exact dust | `dust x M == ghost_R + Σ_h (E(h) mod M)` |
 | INV-6 Entitlement conservation | `Σ_h E(h) == M x totalDistributed - ghost_R == accPerShare x totalSupply + Σ_h corrections(h)`; `Σ corrections <= 0` |
 | INV-7 Per-holder sanity | `E(h) >= 0` and `E(h) / M >= claimed(h)` for every h |

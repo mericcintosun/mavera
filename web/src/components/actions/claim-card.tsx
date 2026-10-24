@@ -2,15 +2,25 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { toast } from "sonner";
 import type { Address, Hex } from "viem";
 import { usePublicClient, useWriteContract } from "wagmi";
+import { NumberTicker } from "@/components/primitives/number-ticker";
+import { Pill } from "@/components/primitives/pill";
+import { STATE_QUERY_KEY, useStatePoll } from "@/components/useStatePoll";
+import { useWalletGate } from "@/components/wallet";
 import { maveraAbi } from "@/lib/abi/mavera";
 import { getClientEnv } from "@/lib/env";
-import { formatUsdc, isUserRejected, toBig, ZERO } from "@/lib/format";
-import { TxLine } from "./TxLine";
-import { Button, Card } from "./ui";
-import { STATE_QUERY_KEY, useStatePoll } from "./useStatePoll";
-import { useWalletGate } from "./wallet";
+import {
+  formatUsdc,
+  formatUsdcAmount,
+  isUserRejected,
+  toBig,
+  ZERO,
+} from "@/lib/format";
+import { cn } from "@/lib/utils";
+import { CoinBurst, FormSkeleton } from "./parts";
+import { TxLine } from "./tx-line";
 
 type Step =
   | { kind: "idle" }
@@ -18,13 +28,14 @@ type Step =
   | { kind: "done"; hash: Hex; block: number; fee: bigint; amount: bigint }
   | { kind: "error"; message: string; hash?: Hex };
 
-export function ClaimCard() {
+export function ClaimForm() {
   const { data: state } = useStatePoll();
   const queryClient = useQueryClient();
   const gate = useWalletGate();
   const publicClient = usePublicClient();
   const write = useWriteContract();
   const [step, setStep] = useState<Step>({ kind: "idle" });
+  const [burst, setBurst] = useState(0);
   const env = getClientEnv();
 
   const claimable = toBig(state?.me?.claimable);
@@ -59,15 +70,15 @@ export function ClaimCard() {
         fee: receipt.gasUsed * receipt.effectiveGasPrice,
         amount,
       });
+      setBurst((b) => b + 1);
+      toast.success(`Claimed ${formatUsdc(amount, "exact")}`);
       void queryClient.invalidateQueries({ queryKey: [STATE_QUERY_KEY] });
     } catch (error) {
-      setStep({
-        kind: "error",
-        message: isUserRejected(error)
-          ? "Rejected in wallet."
-          : "Transaction failed.",
-        hash,
-      });
+      const message = isUserRejected(error)
+        ? "Rejected in wallet."
+        : "Transaction failed.";
+      setStep({ kind: "error", message, hash });
+      toast.error(message);
     }
   }
 
@@ -82,32 +93,50 @@ export function ClaimCard() {
     label = `Claim ${formatUsdc(claimable, "exact")}`;
   }
 
+  if (state === undefined) {
+    return <FormSkeleton />;
+  }
+
   return (
-    <Card
-      title="Claim"
-      subtitle="Your share of every paid call so far. Unclaimed USDC stays in the contract until you claim."
-    >
-      <p className="tabular text-sm text-muted">
-        Claimable now:{" "}
-        <span className="font-semibold text-ink">
-          {hasWallet
-            ? formatUsdc(claimable, "exact")
-            : "connect a wallet to see"}
-        </span>
-      </p>
-      <Button
-        className="mt-4 w-full"
-        onClick={gate.action ?? run}
-        disabled={
-          gate.action
-            ? gate.disabled
-            : !gate.ready || claimable === ZERO || busy || !publicClient
-        }
+    <div>
+      <p className="text-sm text-muted-foreground">Claimable now</p>
+      <div
+        className={cn(
+          "display mt-3 flex items-baseline gap-2 text-4xl sm:text-6xl",
+          hasWallet
+            ? claimable > ZERO
+              ? "text-mint"
+              : "text-cream"
+            : "text-cream/40",
+        )}
       >
-        {label}
-      </Button>
+        <NumberTicker value={`$${formatUsdcAmount(claimable, "exact")}`} />
+        <span className="font-sans text-sm text-muted-foreground">USDC</span>
+      </div>
+      <p className="mt-4 max-w-xl text-pretty text-base leading-relaxed text-muted-foreground">
+        {hasWallet
+          ? "Your share of every paid call so far. It stays in the contract until you claim."
+          : "Connect a wallet to see your share of every paid call so far."}
+      </p>
+
+      <div className="relative mt-8">
+        <Pill
+          size="lg"
+          className="w-full"
+          loading={busy}
+          onClick={gate.action ?? run}
+          disabled={
+            gate.action
+              ? gate.disabled
+              : !gate.ready || claimable === ZERO || busy || !publicClient
+          }
+        >
+          {label}
+        </Pill>
+        <CoinBurst burstKey={burst} />
+      </div>
       {gate.helper ? (
-        <p className="mt-2 text-xs text-muted">{gate.helper}</p>
+        <p className="mt-3 text-sm text-muted-foreground">{gate.helper}</p>
       ) : null}
 
       {step.kind === "claiming" ? (
@@ -119,12 +148,12 @@ export function ClaimCard() {
           hash={step.hash}
           block={step.block}
           fee={step.fee}
-          finalizedBlock={state?.finalized_block}
+          finalizedBlock={state.finalized_block}
         />
       ) : null}
       {step.kind === "error" ? (
         <TxLine text={step.message} hash={step.hash} tone="error" />
       ) : null}
-    </Card>
+    </div>
   );
 }

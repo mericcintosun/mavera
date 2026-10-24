@@ -2,7 +2,15 @@
 
 **Mavera turns a paid API into shares; every x402 call pays the holders within one Monad block.** A bear sells honey; every time a jar sells, coins drip into his friends' cups. Mavera is one permissionless contract on Monad testnet: a developer sells a slice of an API's future revenue as ERC-20 shares, machine customers (AI agents, scripts) pay USD 0.01 per call through x402 straight into that contract, and every payment is split pro rata among the holders of record, who pull their USDC whenever they like. The operator never holds the money, the cap table is a transferable token, and the whole loop (call, settlement, distribution, claim) is visible on-chain in well under a second. This README is written for two readers: a juror who needs the idea in 60 seconds, and the team on event day who needs exact names and commands.
 
-Monad Blitz Ankara v4 · 24 Oct 2026 · Monad testnet (chain 10143) · pre-event: configuration and docs only
+Monad Blitz Ankara v4 · 24 Oct 2026 · Monad testnet (chain 10143) · event-day build: contract deployed and Sourcify-verified at [`0x2C2FcAE97A0925c5c660E3Ea467F931AdE760F4B`](https://testnet.monadscan.com/address/0x2C2FcAE97A0925c5c660E3Ea467F931AdE760F4B), live app at https://mavera-ruby.vercel.app
+
+## In 60 seconds
+
+- **What:** one contract, `Mavera`, is both the ERC-20 cap table of an API and the x402 `payTo` address of that API. `GET /api/price` (MON/USD from two oracles) costs USD 0.01 in USDC per call.
+- **Who pays:** machine customers (AI agents, scripts) sign an EIP-3009 USDC authorization; the Monad facilitator settles it on-chain and pays the gas.
+- **Who earns:** holders of `mPRICE` shares. `sync()` splits every payment pro rata (within one 300 ms block); each holder pulls with `claim()`. The creator earns from the primary sale `buy()`.
+- **What is on-chain:** share balances, revenue custody, the split and the payout. Off-chain: the API data, the facilitator and the dashboard poller.
+- **Where to click:** https://mavera-ruby.vercel.app (buy, call the API, watch the fountain, claim) and the [addresses and proofs](#addresses-and-proofs) table with the deploy, settlement, `sync()` and `claim()` transactions.
 
 ## The loop in one picture
 
@@ -69,7 +77,7 @@ Blockchain here is not the payment rail. It is the cap table and the escrow.
 ## Why Monad
 
 - **Blocks every 300 ms.** Measured 302 ms average over 10,000 testnet blocks on 2026-10-24. A holder sees a paid call's dividend at `latest` in about 300 ms (Proposed), at `safe` about 300 ms later (Voted) and irreversibly at `finalized` after about 600 ms. On a 12-second chain the fountain would not visibly move during a demo. Sources: https://docs.monad.xyz/introduction/monad-for-developers and https://docs.monad.xyz/reference/json-rpc/overview (accessed 2026-10-24).
-- **Sub-cent fees, billed on the gas limit.** The minimum base fee is 100 MON-gwei and Monad charges the gas limit, not the gas used. At that floor a `sync()` with a 150,000-gas limit costs 0.015 MON, about USD 0.0003, under 4% of a 1-cent call; a 21,000-gas MON transfer costs 0.0021 MON (about USD 0.00005) and a 200,000-gas transaction 0.02 MON (about USD 0.0005). Splitting a 1-cent payment on every call is affordable here and not on Ethereum. Figures are at the minimum base fee; it can rise under load, and all Mavera transactions set explicit gas limits. Source: https://docs.monad.xyz/developer-essentials/gas-pricing (accessed 2026-10-24).
+- **Sub-cent fees, billed on the gas limit.** The minimum base fee is 100 MON-gwei and Monad charges the gas limit, not the gas used. At that floor a `sync()` with a 200,000-gas limit costs 0.0204 MON, about USD 0.0004, under 5% of a 1-cent call; a 21,000-gas MON transfer costs 0.0021 MON (about USD 0.00005) and a 200,000-gas transaction 0.02 MON (about USD 0.0005). Splitting a 1-cent payment on every call is affordable here and not on Ethereum. Figures are at the minimum base fee; it can rise under load, and all Mavera transactions set explicit gas limits. Source: https://docs.monad.xyz/developer-essentials/gas-pricing (accessed 2026-10-24).
 - **A live pay-per-call USDC API economy.** Monad API Hub lists 136 services paid per call with x402 v2 in USDC on mainnet (`eip155:143`): https://app.monad.xyz/agents/api-hub (accessed 2026-10-24). Monad runs a public x402 facilitator for `eip155:10143` and `eip155:143` that pays settlement gas: https://x402-facilitator.molandak.org. Mavera is the capital layer for that supply. The hackathon build runs on testnet (`eip155:10143`) with Circle test USDC, as the Blitz rules require. Sources: https://docs.monad.xyz/guides/x402 (accessed 2026-10-24).
 
 ## Addresses and proofs
@@ -119,13 +127,14 @@ forge fmt --check
 slither .
 ```
 
-Web checks and event-day scripts (scripts are TODO-only stubs until event hours):
+Web checks and the demo scripts (one paid call, the `sync()` relayer, the load test; details in [scripts/README.md](scripts/README.md)):
 
 ```sh
 pnpm lint
 pnpm typecheck
 pnpm test
 pnpm build
+pnpm --filter @mavera/scripts relayer
 pnpm --filter @mavera/scripts customer
 pnpm --filter @mavera/scripts load-test
 ```
@@ -146,13 +155,13 @@ mavera/
 ├── contracts/                   Foundry: solc 0.8.37, evm_version osaka, network = "monad", chain_id 10143
 │   ├── foundry.toml  foundry.lock  remappings.txt  slither.config.json  README.md
 │   ├── lib/forge-std (v1.17.0)  lib/openzeppelin-contracts (v5.7.0)      git submodules
-│   ├── src/README.md            Mavera.sol is written during event hours
-│   ├── test/README.md           unit, fuzz and invariant tests, event hours
-│   └── script/README.md         Deploy.s.sol, event hours
+│   ├── src/Mavera.sol           ERC-20 shares + accPerShare accounting: buy, sync, claim, claimable, pending, payTo, endpoint
+│   ├── test/Mavera.t.sol  test/MockUSDC.sol  test/invariant/ (MaveraHandler.sol, MaveraInvariant.t.sol)   38 tests
+│   └── script/Deploy.s.sol
 ├── web/                         @mavera/web: Next.js 16.4.3, React 19.3.1, wagmi 3.7.9, viem 2.57.10, @x402/* 2.28.0, Tailwind 4.3.3
 │   ├── package.json  next.config.ts  biome.json  tsconfig.json  vitest.config.mts  AGENTS.md  README.md
-│   └── src/app/ (layout.tsx, page.tsx placeholder, globals.css, api/README.md)  src/lib/env.ts  src/components/README.md
-├── scripts/                     @mavera/scripts (tsx): deploy.sh, verify.sh, customer.ts, load-test.ts (TODO stubs), faucet-notes.md
+│   └── src/app/ (layout.tsx, page.tsx, providers.tsx, globals.css, api/price/route.ts, api/state/route.ts)  src/lib/ (env, oracle, state, relayer, lock, abi/)  src/components/ (Fountain, BuyCard, CallApiCard, ClaimCard, ...)
+├── scripts/                     @mavera/scripts (tsx): deploy.sh, verify.sh, customer.ts, load-test.ts, relayer.ts, lib.ts, abi.ts (generated), faucet-notes.md
 └── docs/                        README.md index, 00-OVERVIEW ... 12-SUBMISSION-CHECKLIST, adr/ADR-0001 ... ADR-0005, img/
 ```
 
@@ -163,7 +172,7 @@ Measured on 24 Oct 2026 against the live deployment: 31 of 31 x402-paid calls se
 [![contracts](https://github.com/mericcintosun/mavera/actions/workflows/contracts.yml/badge.svg)](https://github.com/mericcintosun/mavera/actions/workflows/contracts.yml)
 [![web](https://github.com/mericcintosun/mavera/actions/workflows/web.yml/badge.svg)](https://github.com/mericcintosun/mavera/actions/workflows/web.yml)
 
-The badge URLs assume the public repository slug `mericcintosun/mavera` (created on event morning; see Open questions). What [docs/05-TEST-PLAN.md](docs/05-TEST-PLAN.md) promises, to be filled with results before submission:
+The repository is `mericcintosun/mavera`. `forge test` (Foundry 1.8.6, `network = "monad"`) passes on 24 Oct 2026 (38 passed, 0 failed): 37 unit and fuzz tests in `contracts/test/Mavera.t.sol` plus the handler-based invariant suite in `contracts/test/invariant/` (10 `invariant_*` functions). What [docs/05-TEST-PLAN.md](docs/05-TEST-PLAN.md) specifies:
 
 | Layer | What it checks | Settings |
 | --- | --- | --- |
@@ -178,7 +187,7 @@ The badge URLs assume the public repository slug `mericcintosun/mavera` (created
 
 Blitz gate `built_at_event`: "The repo shows the work happened during the event. Prior work must be disclosed." (platform rubric, https://blitz.devnads.com/api/events/monad-blitz-ankara-v4/judging, accessed 2026-10-24).
 
-Before any product code, in the commit range `fec7bfa..pre-event` (git tag `pre-event`; configuration committed during the night of 23–24 Oct 2026, the documentation set written overnight and committed at 11:40 on 24 Oct, before the first product commit), the repository contained only:
+Before any product code, in the commit range `fec7bfa..pre-event` (git tag `pre-event`; configuration committed during the night of 23–24 Oct 2026, the documentation set written overnight and committed at 11:29 on 24 Oct, before the first product commit), the repository contained only:
 
 - Configuration: `package.json`, `pnpm-workspace.yaml`, `pnpm-lock.yaml`, `.nvmrc`, `.editorconfig`, `.gitignore`, `.gitmodules`, `.env.example`; `contracts/foundry.toml`, `foundry.lock`, `remappings.txt`, `slither.config.json`; `web/next.config.ts`, `biome.json`, `tsconfig.json`, `vitest.config.mts`; `scripts/package.json`, `tsconfig.json`.
 - CI: `.github/workflows/contracts.yml` and `web.yml`.
@@ -188,7 +197,7 @@ Before any product code, in the commit range `fec7bfa..pre-event` (git tag `pre-
 - TODO-only stubs: `scripts/deploy.sh`, `verify.sh`, `customer.ts`, `load-test.ts` (header comment and TODO; the shell stubs exit 1, the TypeScript stubs export nothing).
 - Third-party libraries as git submodules: OpenZeppelin Contracts v5.7.0 and forge-std v1.17.0 (standard libraries, allowed as boilerplate).
 
-Not in the repository before the event: `Mavera.sol` or any Solidity logic, any Next.js route or page logic, React components, deployment scripts, tests, the project image, the video. All product code starts at 10:45 on 24 Oct 2026, the opening of the platform's "Hacking window 10:45–16:30". No code is reused from earlier projects by the team. The accounting pattern is public prior art (next section) and is implemented fresh during the event.
+Not in the repository before the event: `Mavera.sol` or any Solidity logic, any Next.js route or page logic, React components, deployment scripts, tests, the project image, the video. All product code was written inside the platform's "Hacking window 10:45–16:30" on 24 Oct 2026; the first product commit is `fa2324a` at 12:15, deployment at 12:40. No code is reused from earlier projects by the team. The accounting pattern is public prior art (next section) and is implemented fresh during the event.
 
 ## Prior art and honesty
 
@@ -206,7 +215,7 @@ Sources (accessed 2026-10-24): ERC-1726 https://github.com/ethereum/EIPs/issues/
 - **USDC is trusted.** No fee-on-transfer is assumed, and Circle controls the token: pause and blacklist roles exist on the testnet contract, and a blacklisted `payTo` surfaces as a facilitator `unexpected_error` ([docs/adr/ADR-0005-usdc-choice.md](docs/adr/ADR-0005-usdc-choice.md)).
 - **Facilitator dependency.** The x402 path depends on https://x402-facilitator.molandak.org, even to emit a 402 (the SDK fetches `/supported` on start). Fallbacks without a facilitator, same contract and same UI: EIP-3009 `receiveWithAuthorization` (customer stays gasless) first, EIP-2612 `permit` plus `pay()` second ([docs/03-X402-FLOW.md](docs/03-X402-FLOW.md)).
 - **Route lock is client-side.** The chain cannot force a server's `payTo`; the Mavera client refuses to sign unless `payTo == MAVERA_ADDRESS`, asset is USDC, network is `eip155:10143` and scheme is `exact`. A redirect by the operator equals shutting the API down and is visible on-chain when `Synced` events stop ([docs/06-THREAT-MODEL.md](docs/06-THREAT-MODEL.md)).
-- **Attribution.** Default: `sync()` runs inside `_update`, so each payment goes to the holders of record at that instant, at roughly 40,000 extra gas per transfer (about USD 0.0001). Confirm before 11:00 after gas measurement.
+- **Attribution.** Default: `sync()` runs inside `_update`, so each payment goes to the holders of record at that instant, at roughly 40,000 extra gas per transfer (about USD 0.0001). This is what `Mavera.sol` ships.
 - **Testnet only.** Chain 10143 and Circle test USDC; nothing is deployed on mainnet.
 
 Testnet proof of concept with test USDC. Not an offer of securities. A production deployment would require a KYC allow-list and a licensed issuance wrapper in the relevant jurisdiction.
@@ -221,11 +230,7 @@ MIT, see [LICENSE](LICENSE) (copyright 2026 Mavera contributors).
 
 ## Open questions
 
-- Repository slug: the badge and clone URLs assume `mericcintosun/mavera`; the public repository is created on event morning with `gh repo create mavera --public --source=. --push`. Update the URLs if the slug differs.
-- The git tag `pre-event` marks the last commit that contains no product code; everything after it was written during the hacking window.
-- Every `<...>` placeholder in "Addresses and proofs" (contract, deploy, settlement, `sync()`, `claim()` transactions, verification links, Vercel URL) is filled before 16:00.
-- Token name and symbol, and the demo parameters (`sharePrice`, `creatorShares`, `maxSupply`), are confirmed at 11:00.
-- Attribution choice (`sync()` inside `_update` versus sync-time attribution with the relayer only) is confirmed before 11:00 once the gas cost is measured with `network = "monad"`.
-- `GET /api/price` is the working route name; `DATA_MODE=oracle` (Pyth and Stork MON/USD) versus `DATA_MODE=heartbeat` for the demo is decided after the first live read.
-- The facilitator advertises `batch-settlement`; the first paid call must confirm that one settlement is one transaction before the relayer assumes a one-to-one mapping.
-- The Blitz platform entry for this event is dated 2026-10-23 with status `ended` (checked 2026-10-24); verify the Submit button at 09:00 and tell the organizer if it is closed.
+- Monadscan source verification is still pending (Sourcify/MonadVision shows `exact_match`); run `./scripts/verify.sh` with a free `ETHERSCAN_API_KEY` before 16:00.
+- The facilitator advertises `batch-settlement`; the 30-call load test produced 30 distinct settlement hashes, so the relayer's one-settlement-one-transaction assumption held, but it is not guaranteed by the facilitator's contract.
+- `DATA_MODE=oracle` (Pyth and Stork MON/USD median) is the deployed mode; `DATA_MODE=heartbeat` stays as the fallback if an oracle stops updating during the demo.
+- Resolved on event day: repository slug `mericcintosun/mavera`; git tag `pre-event` (`6890bbe`) marks the last commit without product code; the addresses table above is filled; token `Mavera Shares: MON/USD Price API` / `mPRICE` with the spec default parameters; attribution via `sync()` inside `_update`.
