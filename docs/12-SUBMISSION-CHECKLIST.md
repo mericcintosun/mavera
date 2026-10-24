@@ -73,7 +73,7 @@ Mavera turns a paid API into shares; every x402 call pays the holders within one
 - One x402 endpoint, GET /api/price at $0.01 USDC, whose payTo is the contract itself; the client refuses to pay anywhere else.
 - One page: the fountain shows revenue, claimable and the settlement tx live.
 Contract 0x2C2FcAE97A0925c5c660E3Ea467F931AdE760F4B on Monad testnet (10143), source-verified on Sourcify/MonadVision (exact match). Settlement tx 0xdc3384666636bf00ee33e1a683faea03c55ad1b5c07759ae49272d438862aa1e.
-Prior art: ERC-1726 accounting and Terra (Blitz Mumbai V3); x402commit and Bondrail put a company or a bond in the loop. Built with monskills.
+Prior art: ERC-1726 accounting and Terra (Blitz Mumbai V3); x402commit and Bondrail put a company or a bond in the loop.
 Testnet proof of concept with test USDC. Not an offer of securities.
 ```
 
