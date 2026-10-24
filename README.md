@@ -83,7 +83,7 @@ Blockchain here is not the payment rail. It is the cap table and the escrow.
 | Example `sync()` and `claim()` transactions | `<SYNC_TX_HASH>`, `<CLAIM_TX_HASH>` — TBD on event day | `https://testnet.monadscan.com/tx/<hash>` |
 | Source verification, Sourcify / MonadVision (no key) | TBD on event day | `https://sourcify-api-monad.blockvision.org/v2/contract/10143/<MAVERA_ADDRESS>` and https://testnet.monadvision.com |
 | Source verification, Monadscan (Etherscan V2 API, free key) | TBD on event day | `https://testnet.monadscan.com/address/<MAVERA_ADDRESS>` |
-| Live demo (Vercel, Root Directory `web`) | `<VERCEL_URL>` — TBD on event day | Submission fallback: the repository URL |
+| Live demo (Vercel, Root Directory `web`) | https://mavera-ruby.vercel.app (pnpm 12.15.0 and Next.js 16.4.3 detected on the first build, 24 Oct 2026) | `GET /api/state` returns live chain state; `GET /api/price` answers 402 with `PAYMENT-REQUIRED` |
 | x402 facilitator | https://x402-facilitator.molandak.org — x402 v2, schemes `exact`, `upto`, `batch-settlement` on `eip155:10143`; signer `0x7f6a2850669202519f0FE8aa912451238820Db86` pays settlement gas | `GET /supported` (checked live 2026-10-24) |
 | USDC (Circle, Monad testnet): the x402 asset and the dividend asset | `0x534b2f3A21130d7a60830c2Df862319e593943A3` (FiatTokenV2_2, 6 decimals, EIP-3009 and EIP-2612, EIP-712 domain name `USDC` version `2`) | https://developers.circle.com/stablecoins/usdc-contract-addresses (accessed 2026-10-24); faucet https://faucet.circle.com (20 USDC per address every 2 h) |
 | Price per call | 10,000 USDC atomic units = USD 0.01 (`X402_PRICE_ATOMIC`) | [.env.example](.env.example) |
