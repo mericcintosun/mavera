@@ -13,7 +13,12 @@ allowBuilds:
 
 # pnpm 12 quarantines packages published less than 24 h ago (supply-chain guard).
 # next@16.4.3 shipped on 2026-10-23 13:40 UTC, less than 24 h before the hackathon's Vercel
-# build, so the default would block it. 180 minutes keeps the guard against minutes-old
-# malicious releases while letting event-day installs proceed. The committed lockfile pins
-# exact versions regardless. See docs/11-TOOLCHAIN.md.
+# build, so the default would block it until 16:40 Europe/Istanbul on event day. 180 minutes
+# keeps the guard against minutes-old malicious releases while letting event-day installs
+# proceed. Setting it explicitly also implies minimumReleaseAgeStrict (no silent fallback to
+# an older version). The committed lockfile pins exact versions regardless.
+# See docs/11-TOOLCHAIN.md.
 minimumReleaseAge: 180
+# Escape hatch if a package published < 3 h ago is needed during the event:
+# minimumReleaseAgeExclude:
+#   - some-package@1.2.3

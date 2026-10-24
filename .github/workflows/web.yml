@@ -43,16 +43,17 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # Reads the pinned version from the root package.json "packageManager" field.
-      - uses: pnpm/action-setup@v6
-
-      - uses: actions/setup-node@v7
+      # pnpm/setup is the successor of pnpm/action-setup for pnpm >= 11. It reads the pinned
+      # pnpm version from the root package.json "packageManager" field, installs Node from
+      # .nvmrc, restores the store cache and runs `pnpm install --frozen-lockfile`.
+      # Fallback (documented in docs/11-TOOLCHAIN.md): pnpm/action-setup@v6 + actions/setup-node@v7.
+      - name: Install pnpm, Node.js and dependencies
+        uses: pnpm/setup@v3
         with:
           node-version-file: .nvmrc
-          cache: pnpm
-
-      - name: Install
-        run: pnpm install --frozen-lockfile
+          cache: true
+          install: true
+          require-lockfile: true
 
       - name: Provide placeholder env for the build
         run: cp .env.example web/.env.local

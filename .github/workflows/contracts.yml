@@ -48,8 +48,9 @@ jobs:
       - name: Format check
         run: forge fmt --check
 
+      # --locked: fail if the submodules drift from foundry.lock
       - name: Build
-        run: forge build --sizes
+        run: forge build --locked --sizes
 
       - name: Test (unit + fuzz + invariant)
         run: forge test -vvv
@@ -59,10 +60,24 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     continue-on-error: true
+    permissions:
+      contents: read
+      security-events: write
     steps:
       - uses: actions/checkout@v7
         with:
           submodules: recursive
+
+      # Compile with the pinned Foundry (network = "monad" needs >= 1.8) so the Slither
+      # container only analyses the artifacts (ignore-compile).
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.8.6
+
+      - name: Build with build-info
+        working-directory: contracts
+        run: forge build --build-info --skip test script --force
 
       - name: Run Slither
         id: slither
@@ -70,9 +85,18 @@ jobs:
         continue-on-error: true
         with:
           target: contracts
+          ignore-compile: true
           fail-on: none
+          sarif: results.sarif
           slither-config: contracts/slither.config.json
           slither-args: --checklist --markdown-root ${{ github.server_url }}/${{ github.repository }}/blob/${{ github.sha }}/contracts/
+
+      - name: Upload SARIF to code scanning
+        if: steps.slither.outputs.sarif != ''
+        continue-on-error: true
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: ${{ steps.slither.outputs.sarif }}
 
       - name: Publish checklist to the job summary
         if: always()
