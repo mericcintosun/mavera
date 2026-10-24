@@ -1,8 +1,20 @@
 # Mavera
 
-**Mavera turns a paid API into shares; every x402 call pays the holders within one Monad block.** A bear sells honey; every time a jar sells, coins drip into his friends' cups. Mavera is one permissionless contract on Monad testnet: a developer sells a slice of an API's future revenue as ERC-20 shares, machine customers (AI agents, scripts) pay USD 0.01 per call through x402 straight into that contract, and every payment is split pro rata among the holders of record, who pull their USDC whenever they like. The operator never holds the money, the cap table is a transferable token, and the whole loop (call, settlement, distribution, claim) is visible on-chain in well under a second. This README is written for two readers: a juror who needs the idea in 60 seconds, and the team on event day who needs exact names and commands.
+**Mavera turns a paid API into shares; every x402 call pays the holders within one Monad block.** Mavera is one permissionless contract on Monad testnet: a developer sells a slice of an API's future revenue as ERC-20 shares, machine customers (AI agents, scripts) pay USD 0.01 per call through x402 straight into that contract, and every payment is split pro rata among the holders of record, who pull their USDC whenever they like. The operator never holds the money, the cap table is a transferable token, and the whole loop (call, settlement, distribution, claim) is visible on-chain in well under a second. This README is written for two readers: a juror who needs the idea in 60 seconds, and the team on event day who needs exact names and commands.
 
 Monad Blitz Ankara v4 · 24 Oct 2026 · Monad testnet (chain 10143) · event-day build: contract deployed and Sourcify-verified at [`0x2C2FcAE97A0925c5c660E3Ea467F931AdE760F4B`](https://testnet.monadscan.com/address/0x2C2FcAE97A0925c5c660E3Ea467F931AdE760F4B), live app at https://mavera-ruby.vercel.app
+
+<p align="center">
+  <a href="https://mavera-ruby.vercel.app"><img src="docs/img/screens/hero.jpg" alt="Mavera live site: the bear answers with the real x402 challenge; 37 paid calls and $0.37 paid to holders, read from Monad testnet" width="100%"></a>
+</p>
+
+<p align="center">
+  <a href="https://mavera-ruby.vercel.app"><b>Live app</b></a> ·
+  <a href="https://testnet.monadscan.com/address/0x2C2FcAE97A0925c5c660E3Ea467F931AdE760F4B"><b>Contract on Monadscan</b></a> ·
+  <a href="https://testnet.monadscan.com/tx/0xdc3384666636bf00ee33e1a683faea03c55ad1b5c07759ae49272d438862aa1e"><b>First x402 settlement</b></a> ·
+  <a href="docs/02-CONTRACT-SPEC.md"><b>Contract spec</b></a> ·
+  <a href="docs/03-X402-FLOW.md"><b>x402 flow</b></a>
+</p>
 
 ## In 60 seconds
 
@@ -11,6 +23,55 @@ Monad Blitz Ankara v4 · 24 Oct 2026 · Monad testnet (chain 10143) · event-day
 - **Who earns:** holders of `mPRICE` shares. `sync()` splits every payment pro rata (within one 300 ms block); each holder pulls with `claim()`. The creator earns from the primary sale `buy()`.
 - **What is on-chain:** share balances, revenue custody, the split and the payout. Off-chain: the API data, the facilitator and the dashboard poller.
 - **Where to click:** https://mavera-ruby.vercel.app (buy, call the API, watch the fountain, claim) and the [addresses and proofs](#addresses-and-proofs) table with the deploy, settlement, `sync()` and `claim()` transactions.
+
+## Who earns, and why this needs a chain
+
+Most blockchain apps that only use the chain as a payment rail lose to a card form. Mavera uses it for what a card form cannot do: the contract is the **payee, the cap table and the escrow** at once, so the payment and the dividend are one atomic flow.
+
+- **API builders** sell a slice of an endpoint's future revenue as ERC-20 shares and raise money against usage, not promises.
+- **Holders** earn from every single call, pro rata, and can sell or transfer the claim like any token; revenue accrued before a transfer stays with the seller.
+- **Agents** pay per call with one signature: no account, no API key, no gas.
+
+## Judging map
+
+| Criterion | Where to verify it |
+| --- | --- |
+| Execution | Live app, 37+ settled x402 calls, `sync()` and `claim()` on-chain ([proofs](#addresses-and-proofs)); 38 Foundry tests incl. 10 invariants; 16 web unit tests including a BigInt mirror of the contract math checked against the spec's worked example |
+| On-chain necessity | `payTo` is the contract itself; the split (`accPerShare`), custody and payout live in `Mavera.sol`; the operator never touches the money |
+| Monad fit | One distribution costs about USD 0.0004 at a 200,000-gas limit and the 100 MON-gwei floor; blocks are visible in about 300 ms and final in about 600 ms; Monad runs the x402 facilitator |
+| Problem and promise | Pay-per-call APIs for agents, with shared upside for the people who fund them |
+| Originality | Per-call revenue distribution to ERC-20 holders, paid through x402 straight into the share contract ([prior art](#prior-art-and-honesty)) |
+| Presentation | One-page app with the live 402, a scroll-driven explainer on real data, a live fountain and an in-browser contract-math playground |
+
+## The product, on screen
+
+| | |
+| --- | --- |
+| <img src="docs/img/screens/how-402.jpg" alt="How it works: the live 402 challenge decoded" width="100%"> | <img src="docs/img/screens/how-settle.jpg" alt="How it works: settlement path from agent to facilitator to USDC to the Mavera contract" width="100%"> |
+| **They ask.** The real `PAYMENT-REQUIRED` challenge from `GET /api/price`, decoded: amount 10,000 units, `payTo` = the contract. | **It settles.** The facilitator moves $0.01 of USDC into the contract and pays the gas (737 ms end to end in our pre-flight). |
+| <img src="docs/img/screens/live.jpg" alt="Live panel: totals read from the contract on Monad testnet" width="100%"> | <img src="docs/img/screens/playground.jpg" alt="Playground: in-browser simulation of the contract math" width="100%"> |
+| **Live.** Totals are read from the contract on Monad testnet every two seconds. | **Playground.** An in-browser simulation that runs the exact integer math of `Mavera.sol`: pay, drag shares between holders, claim. |
+
+## One paid call, step by step
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant A as Agent or script
+  participant S as Mavera API (Next.js on Vercel)
+  participant F as Monad x402 facilitator
+  participant U as Circle USDC
+  participant M as Mavera contract
+  A->>S: GET /api/price
+  S-->>A: 402 PAYMENT-REQUIRED (10000 units, payTo = Mavera)
+  A->>S: retry with PAYMENT-SIGNATURE (EIP-3009, no gas)
+  S->>F: verify and settle
+  F->>U: transferWithAuthorization (facilitator pays gas)
+  U->>M: 0.01 USDC lands in the contract
+  S-->>A: 200 with the price JSON and PAYMENT-RESPONSE (tx hash)
+  S->>M: sync() after settle, splits the payment per share
+  Note over M: claimable() rises for every holder, then claim() pays it out
+```
 
 ## The loop in one picture
 
